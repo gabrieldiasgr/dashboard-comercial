@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Comercial</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0b1120; color: #fff;
+      height: 100vh; overflow: hidden;
+      padding: 14px 20px; display: flex; flex-direction: column; gap: 10px;
+    }
+
+    /* ── TOP BAR ─── */
+    .top-bar { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+    .top-bar h1 { font-size: 15px; font-weight: 700; color: #f1f5f9; }
+    .controls { display: flex; align-items: center; gap: 7px; }
+    .controls select {
+      background: #141e33; border: 1px solid #253554; color: #e2e8f0;
+      padding: 5px 10px; border-radius: 7px; font-size: 12px; cursor: pointer; outline: none;
+    }
+    .btn { border: none; padding: 5px 13px; border-radius: 7px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all .15s; }
+    .btn-refresh { background: #1e3a5f; color: #93c5fd; border: 1px solid #2d5491; }
+    .btn-refresh:hover { background: #253e6b; }
+    .btn-save { background: #2563eb; color: #fff; }
+    .btn-save:hover { background: #1d4ed8; }
+
+    /* ── TOKEN ─── */
+    .token-setup {
+      background: #141e33; border: 1px solid #253554; border-radius: 10px;
+      padding: 14px 18px; flex-shrink: 0;
+    }
+    .token-setup p { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+    .token-setup strong { color: #cbd5e1; }
+    .token-row { display: flex; gap: 8px; }
+    .token-row input {
+      flex: 1; background: #0b1120; border: 1px solid #253554; color: #e2e8f0;
+      padding: 7px 12px; border-radius: 7px; font-size: 12px; font-family: monospace; outline: none;
+    }
+    .token-row input:focus { border-color: #3b82f6; }
+
+    /* ── MAIN GRID ─── */
+    .dash-grid {
+      flex: 1; display: grid; min-height: 0;
+      grid-template-rows: auto 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* Row 1: 4 KPI cards full width */
+    .dash-grid .kpi-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+
+    /* Row 2: funnel(2col) + gauge(1col) + MRR detail(1col) */
+    .area-funnel  { grid-column: 1 / 3; grid-row: 2; }
+    .area-gauge   { grid-column: 3 / 4; grid-row: 2; }
+    .area-extra   { grid-column: 4 / 5; grid-row: 2; display: none; } /* future use */
+
+    /* Row 3: closers + sdrs */
+    .area-closers { grid-column: 1 / 3; grid-row: 3; }
+    .area-sdrs    { grid-column: 3 / 5; grid-row: 3; }
+
+    /* ── BASE CARD ─── */
+    .card {
+      background: #141e33; border: 1px solid #1e2f4a; border-radius: 11px;
+      padding: 14px 18px; position: relative; overflow: hidden;
+      display: flex; flex-direction: column; height: 100%;
+    }
+    .card-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 11px 11px 0 0; }
+    .bar-green  { background: linear-gradient(90deg,#10b981,#00c875); }
+    .bar-blue   { background: linear-gradient(90deg,#3b82f6,#06b6d4); }
+    .bar-purple { background: linear-gradient(90deg,#8b5cf6,#ec4899); }
+    .card-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #475569; margin-bottom: 5px; }
+    .card-value { font-size: 24px; font-weight: 800; color: #f1f5f9; line-height: 1; letter-spacing: -.5px; }
+    .card-sub   { font-size: 10px; color: #475569; margin-top: 4px; }
+
+    /* ── FUNNEL ─── */
+    .funnel-card { background: #141e33; border: 1px solid #1e2f4a; border-radius: 11px; padding: 14px 18px; height: 100%; display: flex; flex-direction: column; }
+    .funnel-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #475569; text-align: center; margin-bottom: 10px; }
+    .funnel-row { display: grid; grid-template-columns: 56% 44%; align-items: stretch; }
+    .funnel-shape-cell { height: 50px; display: flex; align-items: center; justify-content: center; }
+    .fl-1 { clip-path: polygon(0% 0%,100% 0%,95% 100%,5% 100%);  background: linear-gradient(135deg,#1a3a6e,#1e4585); }
+    .fl-2 { clip-path: polygon(5% 0%,95% 0%,89% 100%,11% 100%);  background: linear-gradient(135deg,#2451a0,#2a60c0); }
+    .fl-3 { clip-path: polygon(11% 0%,89% 0%,82% 100%,18% 100%); background: linear-gradient(135deg,#1a3a6e,#1e4585); }
+    .fl-4 { clip-path: polygon(18% 0%,82% 0%,53% 100%,47% 100%); background: linear-gradient(135deg,#2451a0,#2a60c0); }
+    .funnel-num { font-size: 20px; font-weight: 800; color: #fff; }
+    .funnel-conv-row { display: grid; grid-template-columns: 56% 44%; height: 16px; }
+    .funnel-conv-cell { display: flex; align-items: center; justify-content: center; }
+    .conv-pill { display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: #f87171; background: rgba(248,113,113,.1); padding: 1px 7px; border-radius: 20px; }
+    .funnel-label-cell { display: flex; flex-direction: column; justify-content: center; padding: 0 0 0 10px; border-left: 2px solid #253554; }
+    .fl-label { font-size: 10px; color: #94a3b8; font-weight: 500; line-height: 1.3; }
+    .fl-bar { height: 2px; background: #1e2f4a; border-radius: 2px; margin-top: 5px; width: 85%; overflow: hidden; }
+    .fl-bar-fill { height: 100%; background: #3b82f6; border-radius: 2px; }
+    .funnel-footer { text-align: center; margin-top: 6px; font-size: 11px; color: #475569; }
+
+    /* ── GAUGE CARD ─── */
+    .gauge-card { background: #141e33; border: 1px solid #1e2f4a; border-radius: 11px; padding: 14px 18px; height: 100%; display: flex; flex-direction: column; }
+    .gauge-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #475569; text-align: center; margin-bottom: 6px; }
+    .gauge-svg-wrap { display: flex; justify-content: center; position: relative; }
+    .gauge-center-val { position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); font-size: 18px; font-weight: 800; color: #f1f5f9; white-space: nowrap; }
+    .gauge-axis { display: flex; justify-content: space-between; padding: 0 6px; font-size: 9px; color: #334155; margin-top: 2px; }
+    .gauge-pct-val { font-size: 28px; font-weight: 800; text-align: center; margin-top: 4px; }
+    .gauge-pct-label { font-size: 9px; color: #475569; text-align: center; text-transform: uppercase; letter-spacing: .8px; }
+    .gauge-stats { display: flex; justify-content: space-around; margin-top: 8px; padding-top: 8px; border-top: 1px solid #1e2f4a; }
+    .gs { text-align: center; }
+    .gs-val { font-size: 13px; font-weight: 700; color: #f1f5f9; }
+    .gs-lbl { font-size: 9px; color: #475569; margin-top: 1px; text-transform: uppercase; letter-spacing: .6px; }
+
+    /* ── TABLE CARDS ─── */
+    .table-card { background: #141e33; border: 1px solid #1e2f4a; border-radius: 11px; overflow: hidden; height: 100%; display: flex; flex-direction: column; }
+    .table-header { padding: 10px 16px 8px; border-bottom: 1px solid #1e2f4a; flex-shrink: 0; }
+    .table-header span { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
+    .tbl-scroll { overflow-y: auto; flex: 1; }
+    .tbl-scroll::-webkit-scrollbar { width: 3px; }
+    .tbl-scroll::-webkit-scrollbar-thumb { background: #253554; border-radius: 2px; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { padding: 7px 12px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: #475569; background: #0f1929; text-align: left; white-space: nowrap; position: sticky; top: 0; }
+    thead th.num { text-align: right; }
+    tbody tr { border-bottom: 1px solid #1a2740; transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(59,130,246,.04); }
+    tbody td { padding: 8px 12px; font-size: 12px; color: #cbd5e1; white-space: nowrap; }
+    tbody td.num { text-align: right; color: #e2e8f0; font-weight: 600; }
+    tbody td.name { font-weight: 600; color: #f1f5f9; }
+    .tag-pct { display: inline-block; padding: 1px 7px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+    .tag-green { background: rgba(0,200,117,.15); color: #00c875; }
+    .tag-blue  { background: rgba(59,130,246,.15); color: #60a5fa; }
+    .tag-red   { background: rgba(239,68,68,.15);  color: #f87171; }
+
+    /* ── STATE ─── */
+    .state-wrap { background: #141e33; border: 1px solid #1e2f4a; border-radius: 11px; padding: 22px 20px; }
+    .loading-row { display: flex; align-items: center; gap: 10px; color: #64748b; font-size: 13px; }
+    .spinner { width: 16px; height: 16px; border: 2px solid #1e2f4a; border-top-color: #3b82f6; border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-box { background: #1e1020; border: 1px solid #5c2020; border-radius: 8px; padding: 10px 14px; color: #f87171; font-size: 12px; line-height: 1.6; }
+    .hint-text { color: #64748b; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <h1>📊 Dashboard Comercial</h1>
+    <div class="controls">
+      <select id="monthSelect"></select>
+      <select id="yearSelect"></select>
+      <button class="btn btn-refresh" onclick="reload()">↻ Atualizar</button>
+    </div>
+  </div>
+
+  <!-- TOKEN SETUP -->
+  <div class="token-setup" id="tokenSetup">
+    <p>🔑 Cole seu <strong>Token da API do Monday.com</strong> — <strong>Foto de perfil → Administração → API</strong></p>
+    <div class="token-row">
+      <input type="password" id="tokenInput" placeholder="eyJhbGciOiJI..." />
+      <button class="btn btn-save" onclick="saveToken()">Salvar e Conectar</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="dash-grid" id="dashGrid">
+    <div class="kpi-row"><div class="state-wrap" style="grid-column:1/-1"><p class="hint-text">Configure o token acima para carregar os dados.</p></div></div>
+  </div>
+
+  <script>
+    // ════════════════════════════════════════════════════
+    //  CONFIG
+    // ════════════════════════════════════════════════════
+    const BOARD_ID   = '9613941689';
+    const MONDAY_URL = 'https://api.monday.com/v2';
+
+    // Monthly goals (Ano-Mês: valor)
+    const METAS = {
+      '2025-11': 50000,  '2025-12': 35000,
+      '2026-01': 50000,  '2026-02': 45000,
+      '2026-03': 50000,  '2026-04': 60000,
+      '2026-05': 70000,  '2026-06': 80000,
+      '2026-07': 90000,  '2026-08': 1000000,
+      '2026-09': 1100000,'2026-10': 1200000,
+      '2026-11': 1300000,'2026-12': 1400000,
+    };
+
+    const COL = {
+      etapa    : 'color_mksyb52r',
+      mrr      : 'numeric_mksykxx',
+      dtFecha  : 'date_mksyxsgr',
+      dtEntrada: 'data',
+      dtAgenda : 'date_mkt23t3n',
+      closer   : 'dropdown_mkt2ehgd',
+      sdr      : 'dropdown_mkt2jm28',
+    };
+
+    const ETAPA_REALIZADA = new Set(['R1 Realizada','R2 Agendado','Follow Up','Proposta em Análise','Fechado','Perdido Closer']);
+    const ETAPA_AGENDADA  = new Set(['Agendadas','No-Show','R1 Realizada','R2 Agendado','Follow Up','Proposta em Análise','Fechado','Perdido Closer']);
+
+    // ════════════════════════════════════════════════════
+    //  STATE
+    // ════════════════════════════════════════════════════
+    let apiToken     = localStorage.getItem('monday_token') || '';
+    let allItems     = null;
+    let fechadoCache = null;
+
+    // ════════════════════════════════════════════════════
+    //  SELECTORS
+    // ════════════════════════════════════════════════════
+    const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+    function initSelectors() {
+      const now  = new Date();
+      const mSel = document.getElementById('monthSelect');
+      const ySel = document.getElementById('yearSelect');
+      MONTHS.forEach((m, i) => {
+        const o = document.createElement('option');
+        o.value = i + 1; o.textContent = m;
+        if (i === now.getMonth()) o.selected = true;
+        mSel.appendChild(o);
+      });
+      for (let y = now.getFullYear(); y >= 2025; y--) {
+        const o = document.createElement('option');
+        o.value = y; o.textContent = y;
+        if (y === now.getFullYear()) o.selected = true;
+        ySel.appendChild(o);
+      }
+      mSel.addEventListener('change', loadData);
+      ySel.addEventListener('change', loadData);
+    }
+
+    // ════════════════════════════════════════════════════
+    //  TOKEN
+    // ════════════════════════════════════════════════════
+    function saveToken() {
+      const t = document.getElementById('tokenInput').value.replace(/[^\x20-\x7E]/g,'').trim();
+      if (!t) return;
+      apiToken = t;
+      localStorage.setItem('monday_token', t);
+      reload();
+    }
+    function reload() { allItems = null; fechadoCache = null; loadData(); }
+
+    // ════════════════════════════════════════════════════
+    //  HELPERS
+    // ════════════════════════════════════════════════════
+    const pad = n => String(n).padStart(2,'0');
+
+    function colVal(item, id) {
+      const c = item.column_values?.find(c => c.id === id);
+      return c?.text || null;
+    }
+    function dateMonth(s) {
+      if (!s) return null;
+      const d = new Date(s + 'T12:00:00Z');
+      return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}`;
+    }
+    function fmt(v) {
+      return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:0,maximumFractionDigits:0}).format(v||0);
+    }
+    function pctTag(num, den) {
+      if (!den) return '<span class="tag-pct tag-blue">—</span>';
+      const p = num/den*100;
+      const cls = p>=50?'tag-green':p>=20?'tag-blue':'tag-red';
+      return `<span class="tag-pct ${cls}">${p.toFixed(1)}%</span>`;
+    }
+
+    // ════════════════════════════════════════════════════
+    //  GAUGE SVG
+    // ════════════════════════════════════════════════════
+    function buildGaugeSVG(mrr, meta) {
+      const W=190, H=105, cx=95, cy=100, r=78;
+      const pct    = meta > 0 ? Math.min(mrr/meta, 1.0) : 0;
+      const color  = !meta ? '#334155' : mrr>=meta ? '#00c875' : mrr/meta>=0.7 ? '#f59e0b' : '#3b82f6';
+      const bgPath = `M ${cx-r},${cy} A ${r},${r} 0 0,0 ${cx+r},${cy}`;
+      let fill = '';
+      if (pct > 0.005) {
+        const eX = (cx - r * Math.cos(pct * Math.PI)).toFixed(2);
+        const eY = (cy - r * Math.sin(pct * Math.PI)).toFixed(2);
+        fill = `<path d="M ${cx-r},${cy} A ${r},${r} 0 0,0 ${eX},${eY}" fill="none" stroke="${color}" stroke-width="13" stroke-linecap="round"/>`;
+      }
+      return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="overflow:visible">
+        <path d="${bgPath}" fill="none" stroke="#1e2f4a" stroke-width="13" stroke-linecap="round"/>
+        ${fill}
+      </svg>`;
+    }
+
+    // ════════════════════════════════════════════════════
+    //  API
+    // ════════════════════════════════════════════════════
+    const COLS_LIST = [COL.etapa,COL.mrr,COL.dtFecha,COL.dtEntrada,COL.dtAgenda,COL.closer,COL.sdr].map(c=>`"${c}"`).join(',');
+
+    async function gql(query) {
+      const res = await fetch(MONDAY_URL,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':apiToken,'API-Version':'2024-01'},
+        body: JSON.stringify({query})
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (json.errors) throw new Error(json.errors[0].message);
+      return json.data;
+    }
+
+    async function fetchAllItems() {
+      if (allItems) return allItems;
+      let all=[], cursor=null;
+      do {
+        showLoading(`Carregando dados... ${all.length} itens`);
+        const cp = cursor ? `, cursor: "${cursor}"` : '';
+        const data = await gql(`{ boards(ids:[${BOARD_ID}]) { items_page(limit:200 ${cp}) { cursor items { id name column_values(ids:[${COLS_LIST}]) { id text } } } } }`);
+        const page = data.boards[0].items_page;
+        all = all.concat(page.items);
+        cursor = page.cursor;
+      } while (cursor);
+      allItems     = all;
+      fechadoCache = all.filter(i => colVal(i, COL.etapa) === 'Fechado');
+      return all;
+    }
+
+    function getLeads(year, month) {
+      const key = `${year}-${pad(month)}`;
+      return (allItems||[]).filter(i => dateMonth(colVal(i,COL.dtEntrada)) === key);
+    }
+    function getClosings(year, month) {
+      const key = `${year}-${pad(month)}`;
+      return (fechadoCache||[]).filter(i => dateMonth(colVal(i,COL.dtFecha)||colVal(i,COL.dtEntrada)) === key);
+    }
+
+    // ════════════════════════════════════════════════════
+    //  METRICS
+    // ════════════════════════════════════════════════════
+    function calcKPIs(leads, closings) {
+      let mrr=0, closingCount=0;
+      closings.forEach(i => { const v=parseFloat(colVal(i,COL.mrr)); if(v>0){mrr+=v;closingCount++;} });
+      const total      = leads.length;
+      const agendadas  = leads.filter(i => ETAPA_AGENDADA.has(colVal(i,COL.etapa))).length;
+      const realizadas = leads.filter(i => ETAPA_REALIZADA.has(colVal(i,COL.etapa))).length;
+      const fechados   = leads.filter(i => colVal(i,COL.etapa)==='Fechado').length;
+      return { mrr, closingCount, ticketMedio: closingCount?mrr/closingCount:0, total, agendadas, realizadas, fechados };
+    }
+
+    function calcClosers(leads, closings) {
+      const map = new Map();
+      leads.forEach(i => {
+        const name=colVal(i,COL.closer); if(!name||name==='Nenhum'||name==='CS') return;
+        if(!ETAPA_REALIZADA.has(colVal(i,COL.etapa))) return;
+        if(!map.has(name)) map.set(name,{name,reunioes:0,fechados:0,mrr:0});
+        map.get(name).reunioes++;
+      });
+      closings.forEach(i => {
+        const name=colVal(i,COL.closer); if(!name||name==='Nenhum'||name==='CS') return;
+        if(!map.has(name)) map.set(name,{name,reunioes:0,fechados:0,mrr:0});
+        const v=parseFloat(colVal(i,COL.mrr))||0;
+        map.get(name).fechados++; map.get(name).mrr+=v;
+      });
+      return [...map.values()].sort((a,b)=>b.mrr-a.mrr);
+    }
+
+    function calcSDRs(leads) {
+      const map = new Map();
+      leads.forEach(i => {
+        const name=colVal(i,COL.sdr); if(!name) return;
+        if(!map.has(name)) map.set(name,{name,agendadas:0,feitas:0});
+        const ag = !!colVal(i,COL.dtAgenda)||ETAPA_AGENDADA.has(colVal(i,COL.etapa));
+        const fz = ETAPA_REALIZADA.has(colVal(i,COL.etapa));
+        if(ag) map.get(name).agendadas++;
+        if(fz) map.get(name).feitas++;
+      });
+      return [...map.values()].filter(s=>s.agendadas>0).sort((a,b)=>b.agendadas-a.agendadas);
+    }
+
+    // ════════════════════════════════════════════════════
+    //  RENDER
+    // ════════════════════════════════════════════════════
+    function renderDash(kpis, closers, sdrs, year, month) {
+      const label    = `${MONTHS[month-1]} ${year}`;
+      const monthKey = `${year}-${pad(month)}`;
+      const meta     = METAS[monthKey] || 0;
+      const metaPct  = meta > 0 ? kpis.mrr/meta*100 : 0;
+      const metaColor= !meta ? '#64748b' : metaPct>=100 ? '#00c875' : metaPct>=70 ? '#f59e0b' : '#3b82f6';
+      const diff     = kpis.mrr - meta;
+
+      const c2ag   = kpis.total     ? kpis.agendadas /kpis.total     : 0;
+      const c2real = kpis.agendadas ? kpis.realizadas/kpis.agendadas  : 0;
+      const c2fech = kpis.realizadas? kpis.fechados  /kpis.realizadas : 0;
+      const totalConv = kpis.total ? (kpis.fechados/kpis.total*100).toFixed(1) : 0;
+
+      const noData = s => `<tr><td colspan="${s}" style="padding:12px;color:#475569;font-size:12px">Sem dados para este mês</td></tr>`;
+
+      document.getElementById('dashGrid').innerHTML = `
+
+        <!-- ── ROW 1: KPIs ── -->
+        <div class="kpi-row">
+          <div class="card">
+            <div class="card-bar bar-green"></div>
+            <div class="card-label">MRR — ${label}</div>
+            <div class="card-value">${fmt(kpis.mrr)}</div>
+            <div class="card-sub">${kpis.closingCount} contratos fechados</div>
+          </div>
+          <div class="card">
+            <div class="card-bar bar-blue"></div>
+            <div class="card-label">Ticket Médio</div>
+            <div class="card-value">${fmt(kpis.ticketMedio)}</div>
+            <div class="card-sub">por contrato</div>
+          </div>
+          <div class="card">
+            <div class="card-bar bar-purple"></div>
+            <div class="card-label">Meta do Mês</div>
+            <div class="card-value">${meta ? fmt(meta) : '—'}</div>
+            <div class="card-sub">objetivo mensal</div>
+          </div>
+          <div class="card">
+            <div class="card-bar" style="background:${metaColor}"></div>
+            <div class="card-label">% da Meta Realizada</div>
+            <div class="card-value" style="color:${metaColor}">${meta ? metaPct.toFixed(1)+'%' : '—'}</div>
+            <div class="card-sub">${metaPct>=100?'✓ Meta batida!':meta?'em andamento':'sem meta definida'}</div>
+          </div>
+        </div>
+
+        <!-- ── ROW 2: FUNNEL + GAUGE ── -->
+        <div class="area-funnel">
+          <div class="funnel-card">
+            <div class="funnel-title">Taxa de Conversão por Etapa (Funil)</div>
+            <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between">
+              <div class="funnel-row">
+                <div class="funnel-shape-cell fl-1"><span class="funnel-num">${kpis.total}</span></div>
+                <div class="funnel-label-cell"><div class="fl-label">Leads Totais</div><div class="fl-bar"><div class="fl-bar-fill" style="width:100%"></div></div></div>
+              </div>
+              <div class="funnel-conv-row"><div class="funnel-conv-cell"><div class="conv-pill">🎯 ${(c2ag*100).toFixed(1)}%</div></div><div></div></div>
+              <div class="funnel-row">
+                <div class="funnel-shape-cell fl-2"><span class="funnel-num">${kpis.agendadas}</span></div>
+                <div class="funnel-label-cell"><div class="fl-label">Reuniões Agendadas</div><div class="fl-bar"><div class="fl-bar-fill" style="width:${Math.min(100,c2ag*100).toFixed(0)}%"></div></div></div>
+              </div>
+              <div class="funnel-conv-row"><div class="funnel-conv-cell"><div class="conv-pill">🎯 ${(c2real*100).toFixed(1)}%</div></div><div></div></div>
+              <div class="funnel-row">
+                <div class="funnel-shape-cell fl-3"><span class="funnel-num">${kpis.realizadas}</span></div>
+                <div class="funnel-label-cell"><div class="fl-label">Reuniões Realizadas</div><div class="fl-bar"><div class="fl-bar-fill" style="width:${kpis.total?Math.min(100,kpis.realizadas/kpis.total*100).toFixed(0):0}%"></div></div></div>
+              </div>
+              <div class="funnel-conv-row"><div class="funnel-conv-cell"><div class="conv-pill">🎯 ${(c2fech*100).toFixed(1)}%</div></div><div></div></div>
+              <div class="funnel-row">
+                <div class="funnel-shape-cell fl-4"><span class="funnel-num">${kpis.fechados}</span></div>
+                <div class="funnel-label-cell"><div class="fl-label">Fechamentos</div><div class="fl-bar"><div class="fl-bar-fill" style="width:${kpis.total?Math.min(100,kpis.fechados/kpis.total*100).toFixed(0):0}%"></div></div></div>
+              </div>
+            </div>
+            <div class="funnel-footer">${totalConv}% conversão total</div>
+          </div>
+        </div>
+
+        <!-- ── META × REALIZADO ── -->
+        <div class="area-gauge" style="grid-column:3/5">
+          <div class="gauge-card">
+            <div class="gauge-title">Meta × Realizado — ${label}</div>
+            <div class="gauge-svg-wrap">
+              ${buildGaugeSVG(kpis.mrr, meta)}
+              <div class="gauge-center-val">${fmt(kpis.mrr)}</div>
+            </div>
+            <div class="gauge-axis">
+              <span>R$ 0</span>
+              <span>${meta ? fmt(meta/2) : ''}</span>
+              <span>${meta ? fmt(meta) : '—'}</span>
+            </div>
+            <div class="gauge-pct-val" style="color:${metaColor}">${meta ? metaPct.toFixed(1)+'%' : '—'}</div>
+            <div class="gauge-pct-label">% da meta realizada</div>
+            <div class="gauge-stats">
+              <div class="gs"><div class="gs-val">${fmt(meta)}</div><div class="gs-lbl">Meta</div></div>
+              <div class="gs"><div class="gs-val" style="color:${diff>=0?'#00c875':'#f87171'}">${diff>=0?'+':''}${fmt(diff)}</div><div class="gs-lbl">${diff>=0?'Acima':'Faltam'}</div></div>
+              <div class="gs"><div class="gs-val">${kpis.closingCount}</div><div class="gs-lbl">Contratos</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── ROW 3: CLOSERS + SDRS ── -->
+        <div class="area-closers">
+          <div class="table-card">
+            <div class="table-header"><span>👤 Closers — ${label}</span></div>
+            <div class="tbl-scroll">
+              <table><thead><tr>
+                <th>Closer</th><th class="num">Reuniões</th><th class="num">Fechados</th><th class="num">Conv.</th><th class="num">Valor Fechado</th>
+              </tr></thead><tbody>
+                ${closers.length ? closers.map(c=>`<tr>
+                  <td class="name">${c.name}</td>
+                  <td class="num">${c.reunioes}</td>
+                  <td class="num">${c.fechados}</td>
+                  <td class="num">${pctTag(c.fechados,c.reunioes)}</td>
+                  <td class="num">${fmt(c.mrr)}</td>
+                </tr>`).join('') : noData(5)}
+              </tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <div class="area-sdrs">
+          <div class="table-card">
+            <div class="table-header"><span>📞 SDRs — ${label}</span></div>
+            <div class="tbl-scroll">
+              <table><thead><tr>
+                <th>SDR</th><th class="num">Agendadas</th><th class="num">Feitas</th><th class="num">Comparec.</th>
+              </tr></thead><tbody>
+                ${sdrs.length ? sdrs.map(s=>`<tr>
+                  <td class="name">${s.name}</td>
+                  <td class="num">${s.agendadas}</td>
+                  <td class="num">${s.feitas}</td>
+                  <td class="num">${pctTag(s.feitas,s.agendadas)}</td>
+                </tr>`).join('') : noData(4)}
+              </tbody></table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ════════════════════════════════════════════════════
+    //  LOAD / STATE
+    // ════════════════════════════════════════════════════
+    function showLoading(msg='Carregando dados...') {
+      document.getElementById('dashGrid').innerHTML = `
+        <div class="kpi-row"><div class="state-wrap" style="grid-column:1/-1">
+          <div class="loading-row"><div class="spinner"></div>${msg}</div>
+        </div></div>`;
+    }
+
+    function showError(msg) {
+      apiToken=''; localStorage.removeItem('monday_token');
+      allItems=null; fechadoCache=null;
+      document.getElementById('tokenSetup').style.display='block';
+      document.getElementById('tokenInput').value='';
+      document.getElementById('dashGrid').innerHTML=`
+        <div class="kpi-row"><div class="state-wrap" style="grid-column:1/-1">
+          <div class="error-box">❌ ${msg}<br>Cole o token novamente acima.</div>
+        </div></div>`;
+    }
+
+    async function loadData() {
+      if (!apiToken) return;
+      const year  = parseInt(document.getElementById('yearSelect').value);
+      const month = parseInt(document.getElementById('monthSelect').value);
+      try {
+        await fetchAllItems();
+        const leads    = getLeads(year, month);
+        const closings = getClosings(year, month);
+        renderDash(calcKPIs(leads,closings), calcClosers(leads,closings), calcSDRs(leads), year, month);
+        document.getElementById('tokenSetup').style.display='none';
+      } catch(err) {
+        showError(`Erro ao buscar dados: ${err.message}`);
+      }
+    }
+
+    // ════════════════════════════════════════════════════
+    //  INIT
+    // ════════════════════════════════════════════════════
+    initSelectors();
+    if (apiToken) {
+      document.getElementById('tokenInput').value = apiToken;
+      document.getElementById('tokenSetup').style.display='none';
+      loadData();
+    }
+  </script>
+</body>
+</html>

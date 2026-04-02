@@ -393,6 +393,7 @@
     //  PODIUM
     // ════════════════════════════════════════════════════
     const PODIUM_COLORS = ['#3b82f6','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ec4899'];
+    const SDR_PHOTOS = { 'josé': 'jose.jpg', 'jose': 'jose.jpg', 'henrique': 'henrique.jpg' };
 
     function initials(name) {
       return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
@@ -400,14 +401,18 @@
 
     function buildPodiumSlot(sdr, rank, colorIdx) {
       if (!sdr) return `<div class="podium-slot p${rank}"><div class="podium-block">—</div></div>`;
-      const color = PODIUM_COLORS[colorIdx % PODIUM_COLORS.length];
-      const pct   = sdr.agendadas ? (sdr.feitas/sdr.agendadas*100).toFixed(1) : '0.0';
+      const color    = PODIUM_COLORS[colorIdx % PODIUM_COLORS.length];
+      const pct      = sdr.agendadas ? (sdr.feitas/sdr.agendadas*100).toFixed(1) : '0.0';
       const pctColor = parseFloat(pct)>=60?'#00c875':parseFloat(pct)>=40?'#f59e0b':'#f87171';
-      const crown = rank===1 ? `<div class="podium-crown">👑</div>` : '';
+      const crown    = rank===1 ? `<div class="podium-crown">👑</div>` : '';
+      const photo    = SDR_PHOTOS[sdr.name.toLowerCase().split(' ')[0]];
+      const avatar   = photo
+        ? `<div class="podium-avatar" style="background:#0b1120;padding:0;overflow:hidden"><img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`
+        : `<div class="podium-avatar" style="background:${color}">${initials(sdr.name)}</div>`;
       return `
         <div class="podium-slot p${rank}">
           ${crown}
-          <div class="podium-avatar" style="background:${color}">${initials(sdr.name)}</div>
+          ${avatar}
           <div class="podium-name">${sdr.name.split(' ')[0]}</div>
           <div class="podium-pct" style="color:${pctColor}">${pct}%</div>
           <div class="podium-sub">${sdr.feitas} de ${sdr.agendadas} ag.</div>

@@ -230,7 +230,7 @@
     };
 
     const ETAPA_REALIZADA = new Set(['R1 Realizada','R2 Agendado','Follow Up','Proposta em Análise','Fechado','Perdido Closer','Contato Futuro','Desqualificado']);
-    const ETAPA_AGENDADA  = new Set(['Agendadas','No-Show','R1 Realizada','R2 Agendado','Follow Up','Proposta em Análise','Fechado','Perdido Closer']);
+    const ETAPA_AGENDADA  = new Set(['Agendadas','No-Show','R1 Realizada','R2 Agendado','Follow Up','Proposta em Análise','Fechado','Perdido Closer','Contato Futuro','Desqualificado']);
 
     // ════════════════════════════════════════════════════
     //  STATE
@@ -373,9 +373,13 @@
       const key = `${year}-${pad(month)}`;
       return (allItems||[]).filter(i => dateMonth(colVal(i,COL.dtEntrada)) === key);
     }
+    const ETAPA_EXCLUIDA_AGENDA = new Set(['Em Aberto','Perdido SDR']);
     function getAgendadas(year, month) {
       const key = `${year}-${pad(month)}`;
-      return (allItems||[]).filter(i => dateMonth(colVal(i,COL.dtAgenda)) === key);
+      return (allItems||[]).filter(i =>
+        dateMonth(colVal(i,COL.dtAgenda)) === key &&
+        !ETAPA_EXCLUIDA_AGENDA.has(colVal(i,COL.etapa))
+      );
     }
     function getClosings(year, month) {
       const key = `${year}-${pad(month)}`;

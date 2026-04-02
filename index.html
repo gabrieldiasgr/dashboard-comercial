@@ -150,6 +150,13 @@
     .p2 .podium-block { width: 70px; height: 35px; background: linear-gradient(180deg,#1a2f4a,#111f33); border: 1px solid #1e3a6e; }
     .p3 .podium-block { width: 70px; height: 25px; background: linear-gradient(180deg,#1a2f4a,#111f33); border: 1px solid #1e3a6e; }
 
+    /* ── FILTER TABS ─── */
+    .filter-tabs { display: flex; gap: 6px; align-items: center; }
+    .ftab { border: 1px solid #253554; background: #141e33; color: #64748b; padding: 4px 11px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap; }
+    .ftab:hover { border-color: #3b82f6; color: #93c5fd; }
+    .ftab.active { background: #1e3a5f; border-color: #3b82f6; color: #60a5fa; }
+    .filter-label { font-size: 10px; color: #475569; }
+
     /* ── STATE ─── */
     .state-wrap { background: #141e33; border: 1px solid #1e2f4a; border-radius: 11px; padding: 22px 20px; }
     .loading-row { display: flex; align-items: center; gap: 10px; color: #64748b; font-size: 13px; }
@@ -165,6 +172,12 @@
   <div class="top-bar">
     <h1>📊 Dashboard Comercial</h1>
     <div class="controls">
+      <div class="filter-tabs">
+        <span class="filter-label">Fechamentos:</span>
+        <button class="ftab active" id="ftab-all"      onclick="setFilter('all')">Todos</button>
+        <button class="ftab"        id="ftab-mesmo"    onclick="setFilter('mesmo_mes')">Leads do mês</button>
+        <button class="ftab"        id="ftab-outros"   onclick="setFilter('outros_meses')">Leads de outros meses</button>
+      </div>
       <select id="monthSelect"></select>
       <select id="yearSelect"></select>
       <button class="btn btn-refresh" onclick="reload()">↻ Atualizar</button>
@@ -214,6 +227,7 @@
     let allItems       = null;
     let fechadoCache   = null;
     let investimentos  = {};
+    let closingFilter  = 'all';
 
     // ════════════════════════════════════════════════════
     //  SELECTORS
@@ -244,6 +258,12 @@
     //  TOKEN
     // ════════════════════════════════════════════════════
     function reload() { allItems = null; fechadoCache = null; loadData(); }
+    function setFilter(f) {
+      closingFilter = f;
+      ['all','mesmo','outros'].forEach(k => document.getElementById('ftab-'+k)?.classList.remove('active'));
+      document.getElementById('ftab-'+(f==='all'?'all':f==='mesmo_mes'?'mesmo':'outros'))?.classList.add('active');
+      loadData();
+    }
 
     // ════════════════════════════════════════════════════
     //  HELPERS
@@ -341,27 +361,39 @@
       const key = `${year}-${pad(month)}`;
       return (allItems||[]).filter(i => dateMonth(colVal(i,COL.dtEntrada)) === key);
     }
+    function getAgendadas(year, month) {
+      const key = `${year}-${pad(month)}`;
+      return (allItems||[]).filter(i => dateMonth(colVal(i,COL.dtAgenda)) === key);
+    }
     function getClosings(year, month) {
       const key = `${year}-${pad(month)}`;
-      return (fechadoCache||[]).filter(i => dateMonth(colVal(i,COL.dtFecha)||colVal(i,COL.dtEntrada)) === key);
+      return (fechadoCache||[]).filter(i => dateMonth(colVal(i,COL.dtFecha)) === key);
+    }
+    // Closings filtrado por origem do lead
+    function getClosingsFilter(year, month, filter) {
+      const closings = getClosings(year, month);
+      const key = `${year}-${pad(month)}`;
+      if (filter === 'mesmo_mes')   return closings.filter(i => dateMonth(colVal(i,COL.dtEntrada)) === key);
+      if (filter === 'outros_meses') return closings.filter(i => dateMonth(colVal(i,COL.dtEntrada)) !== key);
+      return closings;
     }
 
     // ════════════════════════════════════════════════════
     //  METRICS
     // ════════════════════════════════════════════════════
-    function calcKPIs(leads, closings) {
+    function calcKPIs(leads, agendaItems, closings) {
       let mrr=0, closingCount=0;
       closings.forEach(i => { const v=parseFloat(colVal(i,COL.mrr)); if(v>0){mrr+=v;closingCount++;} });
       const total      = leads.length;
-      const agendadas  = leads.filter(i => ETAPA_AGENDADA.has(colVal(i,COL.etapa))).length;
-      const realizadas = leads.filter(i => ETAPA_REALIZADA.has(colVal(i,COL.etapa))).length;
-      const fechados   = leads.filter(i => colVal(i,COL.etapa)==='Fechado').length;
+      const agendadas  = agendaItems.length;
+      const realizadas = agendaItems.filter(i => ETAPA_REALIZADA.has(colVal(i,COL.etapa))).length;
+      const fechados   = closings.length;
       return { mrr, closingCount, ticketMedio: closingCount?mrr/closingCount:0, total, agendadas, realizadas, fechados };
     }
 
-    function calcClosers(leads, closings) {
+    function calcClosers(agendaItems, closings) {
       const map = new Map();
-      leads.forEach(i => {
+      agendaItems.forEach(i => {
         const name=colVal(i,COL.closer); if(!name||name==='Nenhum'||name==='CS') return;
         if(!ETAPA_REALIZADA.has(colVal(i,COL.etapa))) return;
         if(!map.has(name)) map.set(name,{name,reunioes:0,fechados:0,mrr:0});
@@ -376,15 +408,13 @@
       return [...map.values()].sort((a,b)=>b.mrr-a.mrr);
     }
 
-    function calcSDRs(leads) {
+    function calcSDRs(agendaItems) {
       const map = new Map();
-      leads.forEach(i => {
+      agendaItems.forEach(i => {
         const name=colVal(i,COL.sdr); if(!name) return;
         if(!map.has(name)) map.set(name,{name,agendadas:0,feitas:0});
-        const ag = !!colVal(i,COL.dtAgenda)||ETAPA_AGENDADA.has(colVal(i,COL.etapa));
-        const fz = ETAPA_REALIZADA.has(colVal(i,COL.etapa));
-        if(ag) map.get(name).agendadas++;
-        if(fz) map.get(name).feitas++;
+        map.get(name).agendadas++;
+        if(ETAPA_REALIZADA.has(colVal(i,COL.etapa))) map.get(name).feitas++;
       });
       return [...map.values()].filter(s=>s.agendadas>0).sort((a,b)=>b.agendadas-a.agendadas);
     }
@@ -596,11 +626,12 @@
       const month = parseInt(document.getElementById('monthSelect').value);
       try {
         await Promise.all([fetchAllItems(), fetchInvestimentos()]);
-        const leads       = getLeads(year, month);
-        const closings    = getClosings(year, month);
-        const monthKey    = `${year}-${pad(month)}`;
+        const leads        = getLeads(year, month);
+        const agendaItems  = getAgendadas(year, month);
+        const closings     = getClosingsFilter(year, month, closingFilter);
+        const monthKey     = `${year}-${pad(month)}`;
         const investimento = investimentos[monthKey] || 0;
-        renderDash(calcKPIs(leads,closings), calcClosers(leads,closings), calcSDRs(leads), year, month, investimento);
+        renderDash(calcKPIs(leads,agendaItems,closings), calcClosers(agendaItems,closings), calcSDRs(agendaItems), year, month, investimento);
       } catch(err) {
         showError(`Erro ao buscar dados: ${err.message}`);
       }

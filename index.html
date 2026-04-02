@@ -150,18 +150,9 @@
     </div>
   </div>
 
-  <!-- TOKEN SETUP -->
-  <div class="token-setup" id="tokenSetup">
-    <p>🔑 Cole seu <strong>Token da API do Monday.com</strong> — <strong>Foto de perfil → Administração → API</strong></p>
-    <div class="token-row">
-      <input type="password" id="tokenInput" placeholder="eyJhbGciOiJI..." />
-      <button class="btn btn-save" onclick="saveToken()">Salvar e Conectar</button>
-    </div>
-  </div>
-
   <!-- DASHBOARD -->
   <div class="dash-grid" id="dashGrid">
-    <div class="kpi-row"><div class="state-wrap" style="grid-column:1/-1"><p class="hint-text">Configure o token acima para carregar os dados.</p></div></div>
+    <div class="kpi-row"><div class="state-wrap" style="grid-column:1/-1"><div class="loading-row"><div class="spinner"></div>Carregando dados...</div></div></div>
   </div>
 
   <script>
@@ -169,7 +160,7 @@
     //  CONFIG
     // ════════════════════════════════════════════════════
     const BOARD_ID   = '9613941689';
-    const MONDAY_URL = 'https://api.monday.com/v2';
+    const MONDAY_URL = '/api/monday';
 
     // Monthly goals (Ano-Mês: valor)
     const METAS = {
@@ -198,7 +189,6 @@
     // ════════════════════════════════════════════════════
     //  STATE
     // ════════════════════════════════════════════════════
-    let apiToken     = localStorage.getItem('monday_token') || '';
     let allItems     = null;
     let fechadoCache = null;
 
@@ -230,13 +220,6 @@
     // ════════════════════════════════════════════════════
     //  TOKEN
     // ════════════════════════════════════════════════════
-    function saveToken() {
-      const t = document.getElementById('tokenInput').value.replace(/[^\x20-\x7E]/g,'').trim();
-      if (!t) return;
-      apiToken = t;
-      localStorage.setItem('monday_token', t);
-      reload();
-    }
     function reload() { allItems = null; fechadoCache = null; loadData(); }
 
     // ════════════════════════════════════════════════════
@@ -291,7 +274,7 @@
     async function gql(query) {
       const res = await fetch(MONDAY_URL,{
         method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':apiToken,'API-Version':'2024-01'},
+        headers:{'Content-Type':'application/json'},
         body: JSON.stringify({query})
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -519,18 +502,14 @@
     }
 
     function showError(msg) {
-      apiToken=''; localStorage.removeItem('monday_token');
       allItems=null; fechadoCache=null;
-      document.getElementById('tokenSetup').style.display='block';
-      document.getElementById('tokenInput').value='';
       document.getElementById('dashGrid').innerHTML=`
         <div class="kpi-row"><div class="state-wrap" style="grid-column:1/-1">
-          <div class="error-box">❌ ${msg}<br>Cole o token novamente acima.</div>
+          <div class="error-box">❌ ${msg}</div>
         </div></div>`;
     }
 
     async function loadData() {
-      if (!apiToken) return;
       const year  = parseInt(document.getElementById('yearSelect').value);
       const month = parseInt(document.getElementById('monthSelect').value);
       try {
@@ -538,7 +517,6 @@
         const leads    = getLeads(year, month);
         const closings = getClosings(year, month);
         renderDash(calcKPIs(leads,closings), calcClosers(leads,closings), calcSDRs(leads), year, month);
-        document.getElementById('tokenSetup').style.display='none';
       } catch(err) {
         showError(`Erro ao buscar dados: ${err.message}`);
       }
@@ -548,11 +526,7 @@
     //  INIT
     // ════════════════════════════════════════════════════
     initSelectors();
-    if (apiToken) {
-      document.getElementById('tokenInput').value = apiToken;
-      document.getElementById('tokenSetup').style.display='none';
-      loadData();
-    }
+    loadData();
   </script>
 </body>
 </html>

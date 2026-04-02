@@ -129,6 +129,27 @@
     .tag-blue  { background: rgba(59,130,246,.15); color: #60a5fa; }
     .tag-red   { background: rgba(239,68,68,.15);  color: #f87171; }
 
+    /* ── PODIUM ─── */
+    .podium-card { background: #141e33; border: 1px solid #1e2f4a; border-radius: 11px; padding: 12px 16px; height: 100%; display: flex; flex-direction: column; }
+    .podium-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #475569; text-align: center; margin-bottom: 8px; }
+    .podium-stage { display: flex; align-items: flex-end; justify-content: center; gap: 10px; flex: 1; }
+    .podium-slot { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .podium-slot.p1 { order: 2; }
+    .podium-slot.p2 { order: 1; }
+    .podium-slot.p3 { order: 3; }
+    .podium-avatar { border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; flex-shrink: 0; font-size: 14px; }
+    .p1 .podium-avatar { width: 54px; height: 54px; font-size: 18px; }
+    .p2 .podium-avatar { width: 42px; height: 42px; font-size: 14px; }
+    .p3 .podium-avatar { width: 42px; height: 42px; font-size: 14px; }
+    .podium-crown { font-size: 18px; line-height: 1; }
+    .podium-name { font-size: 10px; font-weight: 700; color: #f1f5f9; text-align: center; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .podium-pct { font-size: 16px; font-weight: 800; text-align: center; }
+    .podium-sub { font-size: 9px; color: #475569; text-align: center; }
+    .podium-block { border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; color: rgba(255,255,255,.3); }
+    .p1 .podium-block { width: 80px; height: 50px; background: linear-gradient(180deg,#1e3a6e,#152b52); border: 1px solid #2a5298; }
+    .p2 .podium-block { width: 70px; height: 35px; background: linear-gradient(180deg,#1a2f4a,#111f33); border: 1px solid #1e3a6e; }
+    .p3 .podium-block { width: 70px; height: 25px; background: linear-gradient(180deg,#1a2f4a,#111f33); border: 1px solid #1e3a6e; }
+
     /* ── STATE ─── */
     .state-wrap { background: #141e33; border: 1px solid #1e2f4a; border-radius: 11px; padding: 22px 20px; }
     .loading-row { display: flex; align-items: center; gap: 10px; color: #64748b; font-size: 13px; }
@@ -369,6 +390,46 @@
     }
 
     // ════════════════════════════════════════════════════
+    //  PODIUM
+    // ════════════════════════════════════════════════════
+    const PODIUM_COLORS = ['#3b82f6','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ec4899'];
+
+    function initials(name) {
+      return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    }
+
+    function buildPodiumSlot(sdr, rank, colorIdx) {
+      if (!sdr) return `<div class="podium-slot p${rank}"><div class="podium-block">—</div></div>`;
+      const color = PODIUM_COLORS[colorIdx % PODIUM_COLORS.length];
+      const pct   = sdr.agendadas ? (sdr.feitas/sdr.agendadas*100).toFixed(1) : '0.0';
+      const pctColor = parseFloat(pct)>=60?'#00c875':parseFloat(pct)>=40?'#f59e0b':'#f87171';
+      const crown = rank===1 ? `<div class="podium-crown">👑</div>` : '';
+      return `
+        <div class="podium-slot p${rank}">
+          ${crown}
+          <div class="podium-avatar" style="background:${color}">${initials(sdr.name)}</div>
+          <div class="podium-name">${sdr.name.split(' ')[0]}</div>
+          <div class="podium-pct" style="color:${pctColor}">${pct}%</div>
+          <div class="podium-sub">${sdr.feitas} de ${sdr.agendadas} ag.</div>
+          <div class="podium-block">${rank}º</div>
+        </div>`;
+    }
+
+    function buildPodium(sdrs, label) {
+      const sorted = [...sdrs].sort((a,b) => (b.agendadas+b.feitas) - (a.agendadas+a.feitas));
+      const [s1, s2, s3] = [sorted[0], sorted[1], sorted[2]];
+      return `
+        <div class="podium-card">
+          <div class="podium-title">🏆 Ranking SDRs — ${label}</div>
+          <div class="podium-stage">
+            ${buildPodiumSlot(s2, 2, 1)}
+            ${buildPodiumSlot(s1, 1, 0)}
+            ${buildPodiumSlot(s3, 3, 2)}
+          </div>
+        </div>`;
+    }
+
+    // ════════════════════════════════════════════════════
     //  RENDER
     // ════════════════════════════════════════════════════
     function renderDash(kpis, closers, sdrs, year, month, investimento) {
@@ -502,21 +563,7 @@
         </div>
 
         <div class="area-sdrs">
-          <div class="table-card">
-            <div class="table-header"><span>📞 SDRs — ${label}</span></div>
-            <div class="tbl-scroll">
-              <table><thead><tr>
-                <th>SDR</th><th class="num">Agendadas</th><th class="num">Feitas</th><th class="num">Comparec.</th>
-              </tr></thead><tbody>
-                ${sdrs.length ? sdrs.map(s=>`<tr>
-                  <td class="name">${s.name}</td>
-                  <td class="num">${s.agendadas}</td>
-                  <td class="num">${s.feitas}</td>
-                  <td class="num">${pctTag(s.feitas,s.agendadas)}</td>
-                </tr>`).join('') : noData(4)}
-              </tbody></table>
-            </div>
-          </div>
+          ${buildPodium(sdrs, label)}
         </div>
       `;
     }

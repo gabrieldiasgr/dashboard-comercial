@@ -50,8 +50,8 @@
       gap: 10px;
     }
 
-    /* Row 1: 4 KPI cards full width */
-    .dash-grid .kpi-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+    /* Row 1: 6 KPI cards full width */
+    .dash-grid .kpi-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(6,1fr); gap: 10px; }
 
     /* Row 2: funnel(2col) + gauge(1col) + MRR detail(1col) */
     .area-funnel  { grid-column: 1 / 3; grid-row: 2; }
@@ -161,6 +161,7 @@
     // ════════════════════════════════════════════════════
     const BOARD_ID   = '9613941689';
     const MONDAY_URL = '/api/monday';
+    const SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlckOQ4Er4jS7SnS2aZwGdnSsifKZCbwmf1JdVLsVGXMsWNjUDabpk4o_dsuWRBG013pzFEFoDl-U_/pub?gid=0&single=true&output=csv';
 
     // Monthly goals (Ano-Mês: valor)
     const METAS = {
@@ -189,8 +190,9 @@
     // ════════════════════════════════════════════════════
     //  STATE
     // ════════════════════════════════════════════════════
-    let allItems     = null;
-    let fechadoCache = null;
+    let allItems       = null;
+    let fechadoCache   = null;
+    let investimentos  = {};
 
     // ════════════════════════════════════════════════════
     //  SELECTORS
@@ -244,6 +246,21 @@
       const p = num/den*100;
       const cls = p>=50?'tag-green':p>=20?'tag-blue':'tag-red';
       return `<span class="tag-pct ${cls}">${p.toFixed(1)}%</span>`;
+    }
+
+    // ════════════════════════════════════════════════════
+    //  GOOGLE SHEETS — INVESTIMENTO
+    // ════════════════════════════════════════════════════
+    async function fetchInvestimentos() {
+      try {
+        const res  = await fetch(SHEETS_URL);
+        const text = await res.text();
+        const rows = text.trim().split('\n').slice(1); // skip header
+        rows.forEach(row => {
+          const [mes, valor] = row.split(',');
+          if (mes && valor) investimentos[mes.trim()] = parseFloat(valor.trim()) || 0;
+        });
+      } catch(e) { /* silently ignore — investimento ficará 0 */ }
     }
 
     // ════════════════════════════════════════════════════
@@ -354,13 +371,14 @@
     // ════════════════════════════════════════════════════
     //  RENDER
     // ════════════════════════════════════════════════════
-    function renderDash(kpis, closers, sdrs, year, month) {
+    function renderDash(kpis, closers, sdrs, year, month, investimento) {
       const label    = `${MONTHS[month-1]} ${year}`;
       const monthKey = `${year}-${pad(month)}`;
       const meta     = METAS[monthKey] || 0;
       const metaPct  = meta > 0 ? kpis.mrr/meta*100 : 0;
       const metaColor= !meta ? '#64748b' : metaPct>=100 ? '#00c875' : metaPct>=70 ? '#f59e0b' : '#3b82f6';
       const diff     = kpis.mrr - meta;
+      const roas     = investimento > 0 ? (kpis.mrr / investimento) : 0;
 
       const c2ag   = kpis.total     ? kpis.agendadas /kpis.total     : 0;
       const c2real = kpis.agendadas ? kpis.realizadas/kpis.agendadas  : 0;
@@ -396,6 +414,18 @@
             <div class="card-label">% da Meta Realizada</div>
             <div class="card-value" style="color:${metaColor}">${meta ? metaPct.toFixed(1)+'%' : '—'}</div>
             <div class="card-sub">${metaPct>=100?'✓ Meta batida!':meta?'em andamento':'sem meta definida'}</div>
+          </div>
+          <div class="card">
+            <div class="card-bar" style="background:linear-gradient(90deg,#f59e0b,#ef4444)"></div>
+            <div class="card-label">Investimento Meta Ads</div>
+            <div class="card-value">${investimento ? fmt(investimento) : '—'}</div>
+            <div class="card-sub">${investimento ? 'gasto em anúncios' : 'sem dados'}</div>
+          </div>
+          <div class="card">
+            <div class="card-bar" style="background:linear-gradient(90deg,#06b6d4,#8b5cf6)"></div>
+            <div class="card-label">ROAS</div>
+            <div class="card-value" style="color:${roas>=3?'#00c875':roas>=1?'#f59e0b':'#f87171'}">${roas ? roas.toFixed(2)+'x' : '—'}</div>
+            <div class="card-sub">${roas ? `R$ ${roas.toFixed(2)} de retorno por R$ 1` : 'sem dados'}</div>
           </div>
         </div>
 
@@ -513,10 +543,12 @@
       const year  = parseInt(document.getElementById('yearSelect').value);
       const month = parseInt(document.getElementById('monthSelect').value);
       try {
-        await fetchAllItems();
-        const leads    = getLeads(year, month);
-        const closings = getClosings(year, month);
-        renderDash(calcKPIs(leads,closings), calcClosers(leads,closings), calcSDRs(leads), year, month);
+        await Promise.all([fetchAllItems(), fetchInvestimentos()]);
+        const leads       = getLeads(year, month);
+        const closings    = getClosings(year, month);
+        const monthKey    = `${year}-${pad(month)}`;
+        const investimento = investimentos[monthKey] || 0;
+        renderDash(calcKPIs(leads,closings), calcClosers(leads,closings), calcSDRs(leads), year, month, investimento);
       } catch(err) {
         showError(`Erro ao buscar dados: ${err.message}`);
       }

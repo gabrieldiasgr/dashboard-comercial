@@ -151,11 +151,16 @@
     .p3 .podium-block { width: 70px; height: 25px; background: linear-gradient(180deg,#1a2f4a,#111f33); border: 1px solid #1e3a6e; }
 
     /* ── FILTER TABS ─── */
-    .filter-tabs { display: flex; gap: 6px; align-items: center; }
+    .filter-tabs { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
     .ftab { border: 1px solid #253554; background: #141e33; color: #64748b; padding: 4px 11px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap; }
     .ftab:hover { border-color: #3b82f6; color: #93c5fd; }
     .ftab.active { background: #1e3a5f; border-color: #3b82f6; color: #60a5fa; }
     .filter-label { font-size: 10px; color: #475569; }
+    .date-range { display: flex; align-items: center; gap: 5px; animation: fadeIn .2s; }
+    .date-range input[type=date] { background: #141e33; border: 1px solid #253554; color: #e2e8f0; padding: 3px 8px; border-radius: 7px; font-size: 11px; outline: none; cursor: pointer; color-scheme: dark; }
+    .date-range input[type=date]:focus { border-color: #3b82f6; }
+    .date-range span { font-size: 10px; color: #475569; }
+    @keyframes fadeIn { from { opacity:0; transform: translateX(-4px); } to { opacity:1; transform: translateX(0); } }
 
     /* ── STATE ─── */
     .state-wrap { background: #141e33; border: 1px solid #1e2f4a; border-radius: 11px; padding: 22px 20px; }
@@ -174,9 +179,15 @@
     <div class="controls">
       <div class="filter-tabs">
         <span class="filter-label">Fechamentos:</span>
-        <button class="ftab active" id="ftab-all"      onclick="setFilter('all')">Todos</button>
-        <button class="ftab"        id="ftab-mesmo"    onclick="setFilter('mesmo_mes')">Leads do mês</button>
-        <button class="ftab"        id="ftab-outros"   onclick="setFilter('outros_meses')">Leads de outros meses</button>
+        <button class="ftab active" id="ftab-all"    onclick="setFilter('all')">Todos</button>
+        <button class="ftab"        id="ftab-mesmo"  onclick="setFilter('mesmo_mes')">Leads do mês</button>
+        <button class="ftab"        id="ftab-outros" onclick="setFilter('outros_meses')">Leads de outros meses</button>
+        <div class="date-range" id="dateRangeWrap" style="display:none">
+          <span>entrada de</span>
+          <input type="date" id="dateFrom" onchange="loadData()">
+          <span>até</span>
+          <input type="date" id="dateTo" onchange="loadData()">
+        </div>
       </div>
       <select id="monthSelect"></select>
       <select id="yearSelect"></select>
@@ -262,6 +273,7 @@
       closingFilter = f;
       ['all','mesmo','outros'].forEach(k => document.getElementById('ftab-'+k)?.classList.remove('active'));
       document.getElementById('ftab-'+(f==='all'?'all':f==='mesmo_mes'?'mesmo':'outros'))?.classList.add('active');
+      document.getElementById('dateRangeWrap').style.display = f==='outros_meses' ? 'flex' : 'none';
       loadData();
     }
 
@@ -373,8 +385,19 @@
     function getClosingsFilter(year, month, filter) {
       const closings = getClosings(year, month);
       const key = `${year}-${pad(month)}`;
-      if (filter === 'mesmo_mes')   return closings.filter(i => dateMonth(colVal(i,COL.dtEntrada)) === key);
-      if (filter === 'outros_meses') return closings.filter(i => dateMonth(colVal(i,COL.dtEntrada)) !== key);
+      if (filter === 'mesmo_mes') return closings.filter(i => dateMonth(colVal(i,COL.dtEntrada)) === key);
+      if (filter === 'outros_meses') {
+        const from = document.getElementById('dateFrom')?.value;
+        const to   = document.getElementById('dateTo')?.value;
+        return closings.filter(i => {
+          const entrada = colVal(i, COL.dtEntrada);
+          if (!entrada) return false;
+          if (dateMonth(entrada) === key) return false; // exclui leads do próprio mês
+          if (from && entrada < from) return false;
+          if (to   && entrada > to)   return false;
+          return true;
+        });
+      }
       return closings;
     }
 

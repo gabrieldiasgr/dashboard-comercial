@@ -666,7 +666,7 @@
     // ════════════════════════════════════════════════════
     //  RENDER
     // ════════════════════════════════════════════════════
-    function renderDash(kpis, closers, sdrs, year, month, investimento) {
+    function renderDash(kpis, closers, sdrs, year, month, investimento, closings) {
       const label    = `${MONTHS[month-1]} ${year}`;
       const monthKey = `${year}-${pad(month)}`;
       const meta     = getMeta(monthKey);
@@ -753,25 +753,31 @@
           </div>
         </div>
 
-        <!-- ── META × REALIZADO ── -->
+        <!-- ── CLIENTES FECHADOS ── -->
         <div class="area-gauge" style="grid-column:3/5">
-          <div class="gauge-card">
-            <div class="gauge-title">Meta × Realizado — ${label}</div>
-            <div class="gauge-svg-wrap">
-              ${buildGaugeSVG(kpis.mrr, meta)}
-              <div class="gauge-center-val">${fmt(kpis.mrr)}</div>
-            </div>
-            <div class="gauge-axis">
-              <span>R$ 0</span>
-              <span>${meta ? fmt(meta/2) : ''}</span>
-              <span>${meta ? fmt(meta) : '—'}</span>
-            </div>
-            <div class="gauge-pct-val" style="color:${metaColor}">${meta ? metaPct.toFixed(1)+'%' : '—'}</div>
-            <div class="gauge-pct-label">% da meta realizada</div>
-            <div class="gauge-stats">
-              <div class="gs"><div class="gs-val">${fmt(meta)}</div><div class="gs-lbl">Meta</div></div>
-              <div class="gs"><div class="gs-val" style="color:${diff>=0?'#00c875':'#f87171'}">${diff>=0?'+':''}${fmt(diff)}</div><div class="gs-lbl">${diff>=0?'Acima':'Faltam'}</div></div>
-              <div class="gs"><div class="gs-val">${kpis.closingCount}</div><div class="gs-lbl">Contratos</div></div>
+          <div class="table-card">
+            <div class="table-header"><span>✅ Clientes Fechados — ${label}</span></div>
+            <div class="tbl-scroll">
+              <table><thead><tr>
+                <th>Cliente</th><th>Closer</th><th class="num">Data</th><th class="num">Valor</th>
+              </tr></thead><tbody>
+                ${(closings||[]).length ? [...(closings||[])].sort((a,b)=>{
+                    const da = colVal(a,COL.dtFecha)||''; const db = colVal(b,COL.dtFecha)||'';
+                    return db.localeCompare(da);
+                  }).map(i => {
+                    const nome   = i.name || '—';
+                    const closer = colVal(i,COL.closer) || '—';
+                    const valor  = parseFloat(colVal(i,COL.mrr)) || 0;
+                    const data   = colVal(i,COL.dtFecha);
+                    const dataFmt = data ? data.split('-').reverse().join('/').slice(0,5) : '—';
+                    return `<tr>
+                      <td class="name">${nome}</td>
+                      <td>${closer}</td>
+                      <td class="num">${dataFmt}</td>
+                      <td class="num">${fmt(valor)}</td>
+                    </tr>`;
+                  }).join('') : noData(4)}
+              </tbody></table>
             </div>
           </div>
         </div>
@@ -830,7 +836,7 @@
         const closings     = getClosingsFilter(year, month, closingFilter);
         const monthKey     = `${year}-${pad(month)}`;
         const investimento = investimentos[monthKey] || 0;
-        renderDash(calcKPIs(leads,agendaItems,closings), calcClosers(agendaItems,closings), calcSDRs(agendaItems), year, month, investimento);
+        renderDash(calcKPIs(leads,agendaItems,closings), calcClosers(agendaItems,closings), calcSDRs(agendaItems), year, month, investimento, closings);
       } catch(err) {
         showError(`Erro ao buscar dados: ${err.message}`);
       }

@@ -251,30 +251,30 @@
       box-shadow: 0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
     }
     .podium-title {
-      font-size: clamp(9px,0.7vw,11px); font-weight: 700;
+      font-size: clamp(11px,1vw,15px); font-weight: 700;
       text-transform: uppercase; letter-spacing: 1.2px;
-      color: var(--text-md); text-align: center; margin-bottom: 10px;
+      color: var(--text-md); text-align: center; margin-bottom: 14px;
     }
-    .podium-stage { display: flex; align-items: flex-end; justify-content: center; gap: clamp(8px,2vw,20px); flex: 1; }
-    .podium-slot { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .podium-stage { display: flex; align-items: flex-end; justify-content: center; gap: clamp(16px,3.5vw,48px); flex: 1; }
+    .podium-slot { display: flex; flex-direction: column; align-items: center; gap: 10px; }
     .podium-slot.p1 { order: 2; }
     .podium-slot.p2 { order: 1; }
     .podium-slot.p3 { order: 3; }
     .podium-avatar {
       border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-weight: 800; color: #fff; flex-shrink: 0; border: 2px solid var(--border2);
+      font-weight: 800; color: #fff; flex-shrink: 0; border: 3px solid var(--border2);
     }
-    .p1 .podium-avatar { width: clamp(48px,5vw,68px); height: clamp(48px,5vw,68px); font-size: clamp(16px,1.8vw,22px); border-color: var(--blue); box-shadow: 0 0 20px rgba(77,158,255,0.5), 0 0 40px rgba(77,158,255,0.2); }
-    .p2 .podium-avatar { width: clamp(38px,4vw,54px); height: clamp(38px,4vw,54px); font-size: clamp(13px,1.4vw,18px); border-color: var(--purple); box-shadow: 0 0 14px rgba(168,85,247,0.4); }
-    .p3 .podium-avatar { width: clamp(38px,4vw,54px); height: clamp(38px,4vw,54px); font-size: clamp(13px,1.4vw,18px); border-color: var(--cyan); box-shadow: 0 0 14px rgba(0,217,255,0.3); }
-    .podium-crown { font-size: clamp(16px,1.8vw,22px); line-height: 1; filter: drop-shadow(0 0 8px rgba(255,220,0,0.6)); }
-    .podium-name { font-size: clamp(11px,1vw,13px); font-weight: 700; color: var(--text-hi); text-align: center; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .podium-pct { font-size: clamp(15px,1.6vw,20px); font-weight: 800; text-align: center; }
-    .podium-sub { font-size: clamp(9px,0.8vw,11px); color: var(--text-lo); text-align: center; }
-    .podium-block { border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: center; font-size: clamp(14px,1.5vw,20px); font-weight: 900; color: rgba(255,255,255,.4); }
-    .p1 .podium-block { width: clamp(70px,7vw,100px); height: clamp(44px,5vh,60px); background: linear-gradient(180deg,#1a3a80,#122060); border: 1px solid #2255aa; box-shadow: 0 0 24px rgba(30,58,128,0.6); }
-    .p2 .podium-block { width: clamp(60px,6vw,88px); height: clamp(30px,4vh,44px); background: linear-gradient(180deg,#2a1060,#1a0840); border: 1px solid #5520a0; box-shadow: 0 0 16px rgba(100,30,150,0.4); }
-    .p3 .podium-block { width: clamp(60px,6vw,88px); height: clamp(20px,3vh,32px); background: linear-gradient(180deg,#063040,#041820); border: 1px solid #0a6080; box-shadow: 0 0 12px rgba(0,120,150,0.3); }
+    .p1 .podium-avatar { width: clamp(80px,8vw,120px); height: clamp(80px,8vw,120px); font-size: clamp(26px,2.8vw,40px); border-color: var(--blue); box-shadow: 0 0 28px rgba(77,158,255,0.5), 0 0 56px rgba(77,158,255,0.2); }
+    .p2 .podium-avatar { width: clamp(64px,6.5vw,96px); height: clamp(64px,6.5vw,96px); font-size: clamp(20px,2.2vw,32px); border-color: var(--purple); box-shadow: 0 0 20px rgba(168,85,247,0.4); }
+    .p3 .podium-avatar { width: clamp(64px,6.5vw,96px); height: clamp(64px,6.5vw,96px); font-size: clamp(20px,2.2vw,32px); border-color: var(--cyan); box-shadow: 0 0 20px rgba(0,217,255,0.3); }
+    .podium-crown { font-size: clamp(22px,2.6vw,36px); line-height: 1; filter: drop-shadow(0 0 8px rgba(255,220,0,0.6)); }
+    .podium-name { font-size: clamp(14px,1.4vw,20px); font-weight: 700; color: var(--text-hi); text-align: center; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .podium-pct { font-size: clamp(22px,2.4vw,34px); font-weight: 800; text-align: center; }
+    .podium-sub { font-size: clamp(12px,1.1vw,16px); color: var(--text-lo); text-align: center; }
+    .podium-block { border-radius: 10px 10px 0 0; display: flex; align-items: center; justify-content: center; font-size: clamp(18px,2vw,28px); font-weight: 900; color: rgba(255,255,255,.4); }
+    .p1 .podium-block { width: clamp(100px,10vw,160px); height: clamp(64px,7vh,100px); background: linear-gradient(180deg,#1a3a80,#122060); border: 1px solid #2255aa; box-shadow: 0 0 24px rgba(30,58,128,0.6); }
+    .p2 .podium-block { width: clamp(88px,9vw,140px); height: clamp(46px,5vh,76px); background: linear-gradient(180deg,#2a1060,#1a0840); border: 1px solid #5520a0; box-shadow: 0 0 16px rgba(100,30,150,0.4); }
+    .p3 .podium-block { width: clamp(88px,9vw,140px); height: clamp(30px,3.5vh,54px); background: linear-gradient(180deg,#063040,#041820); border: 1px solid #0a6080; box-shadow: 0 0 12px rgba(0,120,150,0.3); }
 
     /* ── FILTER TABS ─── */
     .filter-tabs { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }

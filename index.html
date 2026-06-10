@@ -298,47 +298,27 @@
     .date-range span { font-size: clamp(9px,0.8vw,11px); color: var(--text-lo); }
     @keyframes fadeIn { from { opacity:0; transform: translateX(-4px); } to { opacity:1; transform: translateX(0); } }
 
-    /* ── EDIT META MODAL ── */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.72); backdrop-filter: blur(4px);
-      z-index: 100; align-items: center; justify-content: center;
+    /* ── INLINE EDIT META ── */
+    .meta-editable {
+      cursor: text;
+      border-radius: 6px;
+      transition: background .15s;
+      padding: 2px 4px; margin: -2px -4px;
     }
-    .modal-overlay.open { display: flex; }
-    .modal-box {
-      background: linear-gradient(145deg, #0e1829, #0b1120);
-      border: 1px solid var(--border2);
-      border-radius: var(--radius);
-      padding: 28px 32px;
-      width: min(380px, 90vw);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04);
+    .meta-editable:hover { background: rgba(77,158,255,0.1); }
+    .meta-inline-input {
+      background: transparent;
+      border: none; border-bottom: 2px solid var(--cyan);
+      color: var(--text-hi);
+      font-size: clamp(18px,2vw,30px); font-weight: 800;
+      font-family: inherit; letter-spacing: -.5px; line-height: 1;
+      outline: none; width: 100%;
+      padding: 0; margin: 0;
     }
-    .modal-title {
-      font-size: 11px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 1.2px; color: var(--text-md); margin-bottom: 18px;
+    .meta-hint {
+      font-size: clamp(9px,0.7vw,10px); color: var(--cyan);
+      margin-top: 5px; opacity: 0.7;
     }
-    .modal-input {
-      width: 100%; background: rgba(5,8,15,0.8);
-      border: 1px solid var(--border2); border-radius: 8px;
-      color: var(--text-hi); font-size: 22px; font-weight: 700;
-      padding: 12px 16px; outline: none; transition: border-color .15s;
-      font-family: inherit;
-    }
-    .modal-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(0,217,255,0.15); }
-    .modal-hint { font-size: 11px; color: var(--text-lo); margin-top: 8px; }
-    .modal-actions { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; }
-    .btn-cancel { background: rgba(255,255,255,0.05); color: var(--text-md); border: 1px solid var(--border2); }
-    .btn-cancel:hover { background: rgba(255,255,255,0.08); }
-    .btn-save { background: rgba(0,100,200,0.3); color: #7ec8ff; border: 1px solid #1e3a6e; }
-    .btn-save:hover { background: rgba(0,120,240,0.4); box-shadow: 0 0 12px rgba(77,158,255,0.3); }
-    .btn-edit-meta {
-      position: absolute; top: 8px; right: 8px;
-      background: rgba(255,255,255,0.04); border: 1px solid var(--border2);
-      color: var(--text-lo); border-radius: 6px;
-      width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 12px; transition: all .15s; line-height: 1;
-    }
-    .btn-edit-meta:hover { background: rgba(77,158,255,0.15); color: var(--blue); border-color: var(--blue); }
 
     /* ── STATE ─── */
     .state-wrap { background: linear-gradient(145deg, #0e1829, #080e1c); border: 1px solid var(--border2); border-radius: var(--radius); padding: 22px 20px; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
@@ -370,20 +350,6 @@
       <select id="monthSelect"></select>
       <select id="yearSelect"></select>
       <button class="btn btn-refresh" onclick="reload()">↻ Atualizar</button>
-    </div>
-  </div>
-
-  <!-- MODAL EDITAR META -->
-  <div class="modal-overlay" id="metaModal" onclick="if(event.target===this)closeMetaModal()">
-    <div class="modal-box">
-      <div class="modal-title" id="metaModalTitle">Editar Meta</div>
-      <input class="modal-input" id="metaModalInput" type="number" min="0" step="1000" placeholder="Ex: 80000"
-        onkeydown="if(event.key==='Enter')saveMetaModal()">
-      <div class="modal-hint">Valor em R$ — somente números (ex: 80000). Salvo localmente no navegador.</div>
-      <div class="modal-actions">
-        <button class="btn btn-cancel" onclick="closeMetaModal()">Cancelar</button>
-        <button class="btn btn-save" onclick="saveMetaModal()">Salvar</button>
-      </div>
     </div>
   </div>
 
@@ -734,10 +700,9 @@
           </div>
           <div class="card">
             <div class="card-bar bar-purple"></div>
-            <button class="btn-edit-meta" onclick="openMetaModal('${monthKey}',${meta},'${label}')" title="Editar meta">✏</button>
             <div class="card-label">Meta do Mês</div>
-            <div class="card-value">${meta ? fmt(meta) : '—'}</div>
-            <div class="card-sub">objetivo mensal</div>
+            <div class="card-value meta-editable" id="meta-val" onclick="startInlineEdit('${monthKey}',${meta})">${meta ? fmt(meta) : '—'}</div>
+            <div class="card-sub" id="meta-sub">clique para editar</div>
           </div>
           <div class="card">
             <div class="card-bar" style="background:${metaColor}"></div>
@@ -872,36 +837,33 @@
     }
 
     // ════════════════════════════════════════════════════
-    //  EDIT META MODAL
+    //  INLINE EDIT META
     // ════════════════════════════════════════════════════
-    let _editingMonthKey = null;
-
-    function openMetaModal(monthKey, currentMeta, label) {
-      _editingMonthKey = monthKey;
-      document.getElementById('metaModalTitle').textContent = `Editar Meta — ${label}`;
-      document.getElementById('metaModalInput').value = currentMeta || '';
-      document.getElementById('metaModal').classList.add('open');
-      setTimeout(() => document.getElementById('metaModalInput').select(), 50);
+    function startInlineEdit(monthKey, currentMeta) {
+      const el  = document.getElementById('meta-val');
+      const sub = document.getElementById('meta-sub');
+      if (!el) return;
+      el.onclick = null;
+      el.classList.remove('meta-editable');
+      el.innerHTML = `<input id="meta-inline-input" class="meta-inline-input" type="number"
+        min="0" step="1000" value="${currentMeta || ''}" placeholder="Ex: 80000"
+        onblur="saveInlineMeta('${monthKey}', this)"
+        onkeydown="if(event.key==='Enter'){this.blur()}else if(event.key==='Escape'){loadData()}">`;
+      if (sub) { sub.innerHTML = '<span class="meta-hint">Enter para salvar · Esc para cancelar</span>'; }
+      const input = document.getElementById('meta-inline-input');
+      input.focus();
+      input.select();
     }
 
-    function closeMetaModal() {
-      document.getElementById('metaModal').classList.remove('open');
-      _editingMonthKey = null;
-    }
-
-    function saveMetaModal() {
-      if (!_editingMonthKey) return;
-      const val = parseFloat(document.getElementById('metaModalInput').value);
-      if (isNaN(val) || val < 0) {
-        document.getElementById('metaModalInput').focus();
-        return;
+    function saveInlineMeta(monthKey, input) {
+      const val = parseFloat(input.value);
+      if (!isNaN(val) && val >= 0) {
+        try {
+          const overrides = JSON.parse(localStorage.getItem('metas_override') || '{}');
+          overrides[monthKey] = val;
+          localStorage.setItem('metas_override', JSON.stringify(overrides));
+        } catch(e) { console.error('Erro ao salvar meta:', e); }
       }
-      try {
-        const overrides = JSON.parse(localStorage.getItem('metas_override') || '{}');
-        overrides[_editingMonthKey] = val;
-        localStorage.setItem('metas_override', JSON.stringify(overrides));
-      } catch(e) { console.error('Erro ao salvar meta:', e); }
-      closeMetaModal();
       loadData();
     }
 

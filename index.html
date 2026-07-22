@@ -112,6 +112,7 @@
       gap: var(--gap);
     }
     .dash-grid .kpi-row { grid-column: 1/-1; display: grid; grid-template-columns: repeat(6,1fr); gap: var(--gap); }
+    .dash-grid .kpi-row.kpi-row-7 { grid-template-columns: repeat(7,1fr); }
     .area-funnel  { grid-column: 1/3; grid-row: 2; min-height: 0; overflow: hidden; }
     .area-gauge   { grid-column: 3/5; grid-row: 3; min-height: 0; overflow: hidden; }
     .area-closers { grid-column: 1/3; grid-row: 3; min-height: 0; overflow: hidden; }
@@ -121,6 +122,7 @@
     @media (max-width: 1200px) and (min-width: 600px) {
       .dash-grid { grid-template-rows: auto auto auto auto; grid-template-columns: 1fr 1fr; }
       .dash-grid .kpi-row { grid-template-columns: repeat(3,1fr); }
+      .dash-grid .kpi-row.kpi-row-7 { grid-template-columns: repeat(4,1fr); }
       .area-funnel  { grid-column: 1/2; grid-row: 2; }
       .area-gauge   { grid-column: 2/3; grid-row: 2; }
       .area-closers { grid-column: 1/3; grid-row: 3; }
@@ -438,6 +440,7 @@
       dtAgenda : 'date_mkt23t3n',
       closer   : 'dropdown_mkt2ehgd',
       sdr      : 'dropdown_mkt2jm28',
+      modelo   : 'color_mm5gmp1',
     };
 
     const ETAPA_REALIZADA = new Set(['R1 Realizada','R2 Agendado','Follow Up','Proposta em Análise','Fechado','Perdido Closer','Contato Futuro','Desqualificado']);
@@ -557,7 +560,7 @@
     // ════════════════════════════════════════════════════
     //  API
     // ════════════════════════════════════════════════════
-    const COLS_LIST = [COL.etapa,COL.mrr,COL.dtFecha,COL.dtEntrada,COL.dtAgenda,COL.closer,COL.sdr].map(c=>`"${c}"`).join(',');
+    const COLS_LIST = [COL.etapa,COL.mrr,COL.dtFecha,COL.dtEntrada,COL.dtAgenda,COL.closer,COL.sdr,COL.modelo].map(c=>`"${c}"`).join(',');
 
     async function gql(query) {
       const res = await fetch(MONDAY_URL,{
@@ -627,13 +630,20 @@
     //  METRICS
     // ════════════════════════════════════════════════════
     function calcKPIs(leads, agendaItems, closings) {
-      let mrr=0, closingCount=0;
-      closings.forEach(i => { const v=parseFloat(colVal(i,COL.mrr)); if(v>0){mrr+=v;closingCount++;} });
+      let mrr=0, closingCount=0, tcvTotal=0, tcvCount=0, mrrTotal=0, mrrCount=0;
+      closings.forEach(i => {
+        const v=parseFloat(colVal(i,COL.mrr));
+        if(v>0){
+          mrr+=v; closingCount++;
+          if (colVal(i,COL.modelo) === 'TCV') { tcvTotal+=v; tcvCount++; }
+          else { mrrTotal+=v; mrrCount++; }
+        }
+      });
       const total      = leads.length;
       const agendadas  = agendaItems.length;
       const realizadas = agendaItems.filter(i => ETAPA_REALIZADA.has(colVal(i,COL.etapa))).length;
       const fechados   = closings.length;
-      return { mrr, closingCount, ticketMedio: closingCount?mrr/closingCount:0, total, agendadas, realizadas, fechados };
+      return { mrr, closingCount, tcvTotal, tcvCount, mrrTotal, mrrCount, ticketMedio: closingCount?mrr/closingCount:0, total, agendadas, realizadas, fechados };
     }
 
     function calcClosers(agendaItems, closings) {
@@ -716,9 +726,9 @@
       const label    = `${MONTHS[month-1]} ${year}`;
       const monthKey = `${year}-${pad(month)}`;
       const meta     = getMeta(monthKey);
-      const metaPct  = meta > 0 ? kpis.mrr/meta*100 : 0;
+      const metaPct  = meta > 0 ? kpis.tcvTotal/meta*100 : 0;
       const metaColor= !meta ? '#64748b' : metaPct>=100 ? '#10b981' : metaPct>=70 ? '#f59e0b' : '#2563eb';
-      const diff     = kpis.mrr - meta;
+      const diff     = kpis.tcvTotal - meta;
       const roas     = investimento > 0 ? (kpis.mrr / investimento) : 0;
 
       const c2ag   = kpis.total     ? kpis.agendadas /kpis.total     : 0;
@@ -731,12 +741,18 @@
       document.getElementById('dashGrid').innerHTML = `
 
         <!-- ── ROW 1: KPIs ── -->
-        <div class="kpi-row">
+        <div class="kpi-row kpi-row-7">
           <div class="card">
             <div class="card-bar bar-blue"></div>
-            <div class="card-label">MRR — ${label}</div>
-            <div class="card-value">${fmt(kpis.mrr)}</div>
-            <div class="card-sub">${kpis.closingCount} contratos fechados</div>
+            <div class="card-label">TCV Fechado — ${label}</div>
+            <div class="card-value">${fmt(kpis.tcvTotal)}</div>
+            <div class="card-sub">${kpis.tcvCount} contratos fechados</div>
+          </div>
+          <div class="card">
+            <div class="card-bar bar-orange"></div>
+            <div class="card-label">MRR Fechado — ${label}</div>
+            <div class="card-value">${fmt(kpis.mrrTotal)}</div>
+            <div class="card-sub">${kpis.mrrCount} contratos fechados</div>
           </div>
           <div class="card">
             <div class="card-bar bar-blue"></div>

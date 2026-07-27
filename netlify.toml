@@ -5,3 +5,8 @@
   from = "/api/monday"
   to = "/.netlify/functions/monday"
   status = 200
+
+[[redirects]]
+  from = "/api/meta-ads"
+  to = "/.netlify/functions/meta-ads"
+  status = 200

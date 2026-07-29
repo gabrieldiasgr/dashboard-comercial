@@ -215,14 +215,6 @@
     }
     .card-sub { font-size: clamp(10px, 0.85vw, 14px); color: var(--text-lo); margin-top: clamp(3px, 0.4vw, 8px); font-weight: 500; }
 
-    .kpi-head { display: flex; align-items: center; gap: clamp(8px, 1cqw, 14px); margin-bottom: clamp(8px, 1.4cqw, 16px); }
-    .kpi-head .card-label { margin-top: 0; }
-    .kpi-icon {
-      width: clamp(26px, 11cqw, 38px); height: clamp(26px, 11cqw, 38px); border-radius: 50%;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-      font-size: clamp(13px, 5.5cqw, 18px); box-shadow: 0 4px 14px rgba(0,0,0,0.35);
-    }
-
     /* ── FUNNEL REDESIGN ─── */
     .funnel-card { padding: var(--pad); justify-content: space-between; }
     .funnel-title { text-align: center; justify-content: center; margin-bottom: clamp(12px, 1.5vw, 32px); color: var(--text-hi); }
@@ -877,43 +869,43 @@
         <div class="kpi-row kpi-row-7">
           <div class="card">
             <div class="card-bar bar-blue"></div>
-            <div class="kpi-head"><div class="kpi-icon" style="background:linear-gradient(135deg,var(--scale-blue),var(--scale-blue-light))">💰</div><div class="card-label">TCV Fechado — ${label}</div></div>
+            <div class="card-label">TCV Fechado — ${label}</div>
             <div class="card-value">${fmt(kpis.tcvTotal)}</div>
             <div class="card-sub">${kpis.tcvCount} contratos fechados</div>
           </div>
           <div class="card">
             <div class="card-bar bar-orange"></div>
-            <div class="kpi-head"><div class="kpi-icon" style="background:linear-gradient(135deg,var(--scale-orange),var(--scale-orange-light))">📈</div><div class="card-label">MRR Fechado — ${label}</div></div>
+            <div class="card-label">MRR Fechado — ${label}</div>
             <div class="card-value">${fmt(kpis.mrrTotal)}</div>
             <div class="card-sub">${kpis.mrrCount} contratos fechados</div>
           </div>
           <div class="card">
             <div class="card-bar bar-green"></div>
-            <div class="kpi-head"><div class="kpi-icon" style="background:linear-gradient(135deg,var(--green),#34d399)">🎯</div><div class="card-label">Meta do Mês</div></div>
+            <div class="card-label">Meta do Mês</div>
             <div class="card-value meta-editable" id="meta-val" onclick="startInlineEdit('${monthKey}',${meta})">${meta ? fmt(meta) : '—'}</div>
             <div class="card-sub" id="meta-sub">clique para editar</div>
           </div>
           <div class="card">
             <div class="card-bar" style="background:${gapColor}"></div>
-            <div class="kpi-head"><div class="kpi-icon" style="background:${gapColor}">🏁</div><div class="card-label">Gap para Meta do Mês</div></div>
+            <div class="card-label">Gap para Meta do Mês</div>
             <div class="card-value" style="color:${gapColor}">${gapValueTxt}</div>
             <div class="card-sub">${gapSubTxt}</div>
           </div>
           <div class="card">
             <div class="card-bar" style="background:${metaColor}"></div>
-            <div class="kpi-head"><div class="kpi-icon" style="background:${metaColor}">◔</div><div class="card-label">% da Meta Realizada</div></div>
+            <div class="card-label">% da Meta Realizada</div>
             <div class="card-value" style="color:${metaColor}">${meta ? metaPct.toFixed(1)+'%' : '—'}</div>
             <div class="card-sub">${metaPct>=100?'✓ Meta batida!':meta?'em andamento':'sem meta definida'}</div>
           </div>
           <div class="card">
             <div class="card-bar bar-blue"></div>
-            <div class="kpi-head"><div class="kpi-icon" style="background:linear-gradient(135deg,var(--scale-blue),var(--scale-blue-light))">🏷️</div><div class="card-label">Ticket Médio TCV</div></div>
+            <div class="card-label">Ticket Médio TCV</div>
             <div class="card-value">${fmt(kpis.ticketMedioTCV)}</div>
             <div class="card-sub">por contrato TCV</div>
           </div>
           <div class="card">
             <div class="card-bar bar-orange"></div>
-            <div class="kpi-head"><div class="kpi-icon" style="background:linear-gradient(135deg,var(--scale-orange),var(--scale-orange-light))">🎫</div><div class="card-label">Ticket Médio MRR</div></div>
+            <div class="card-label">Ticket Médio MRR</div>
             <div class="card-value">${fmt(kpis.ticketMedioMRR)}</div>
             <div class="card-sub">por contrato MRR</div>
           </div>

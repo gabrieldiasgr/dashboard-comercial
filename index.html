@@ -179,6 +179,7 @@
       position: relative; overflow: hidden;
       display: flex; flex-direction: column; height: 100%;
       min-width: 0; min-height: 0;
+      container-type: inline-size;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
     }
@@ -204,8 +205,8 @@
       overflow: hidden; text-overflow: ellipsis; display: block;
     }
     .card-value {
-      overflow-wrap: break-word; word-break: break-word;
-      font-size: clamp(24px, 2.5vw, 64px); font-weight: 800;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font-size: clamp(16px, 11cqw, 42px); font-weight: 800;
       color: var(--text-hi); line-height: 1.1; letter-spacing: -1px;
       text-shadow: 0 2px 10px rgba(0,0,0,0.5);
     }
@@ -399,7 +400,7 @@
       background: rgba(0,0,0,0.3);
       border: 1px solid var(--scale-blue-light); border-radius: 8px;
       color: var(--text-hi);
-      font-size: clamp(24px, 2.5vw, 64px); font-weight: 800;
+      font-size: clamp(16px, 11cqw, 42px); font-weight: 800;
       font-family: inherit; letter-spacing: -1px; line-height: 1.1;
       outline: none; width: 100%;
       padding: 4px 8px; margin: -4px -8px;
@@ -890,7 +891,7 @@
         <div class="area-funnel">
           <div class="funnel-card">
             <div class="funnel-title">Taxa de Conversão por Etapa (Funil)</div>
-            <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between">
+            <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;max-width:640px;width:100%;margin:0 auto">
               <div class="funnel-row">
                 <div class="funnel-shape-cell fl-1"><span class="funnel-num">${kpis.total}</span></div>
                 <div class="funnel-label-cell"><div class="fl-label">Leads Totais</div></div>

@@ -1096,14 +1096,16 @@
       });
       adMap.forEach((data, adName) => { ensure(adName).spend += data.spend; });
 
-      return [...rows.values()].map(r => ({
-        ...r,
-        cpl: r.leads ? r.spend/r.leads : 0,
-        custoAgendamento: r.agendamentos ? r.spend/r.agendamentos : 0,
-        custoComparecimento: r.comparecimentos ? r.spend/r.comparecimentos : 0,
-        cac: r.fechamentos ? r.spend/r.fechamentos : 0,
-        roas: r.spend>0 ? r.valorFechado/r.spend : 0,
-      })).sort((a,b) => b.spend - a.spend);
+      return [...rows.values()]
+        .filter(r => r.spend > 0)
+        .map(r => ({
+          ...r,
+          cpl: r.leads ? r.spend/r.leads : 0,
+          custoAgendamento: r.agendamentos ? r.spend/r.agendamentos : 0,
+          custoComparecimento: r.comparecimentos ? r.spend/r.comparecimentos : 0,
+          cac: r.fechamentos ? r.spend/r.fechamentos : 0,
+          roas: r.spend>0 ? r.valorFechado/r.spend : 0,
+        })).sort((a,b) => b.spend - a.spend);
     }
 
     function renderMarketing(k, creatives, year, month) {

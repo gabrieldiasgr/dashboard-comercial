@@ -10,9 +10,9 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: 'Meta Ads não configurado no servidor.' }) };
   }
 
-  let since, until;
+  let since, until, level;
   try {
-    ({ since, until } = JSON.parse(event.body || '{}'));
+    ({ since, until, level } = JSON.parse(event.body || '{}'));
   } catch {
     return { statusCode: 400, body: JSON.stringify({ error: 'Body inválido.' }) };
   }
@@ -20,9 +20,11 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'Parâmetros since/until obrigatórios (YYYY-MM-DD).' }) };
   }
 
-  const fields = ['spend', 'impressions', 'clicks', 'cpc', 'cpm', 'ctr', 'actions', 'action_values'].join(',');
+  const baseFields = ['spend', 'impressions', 'clicks', 'cpc', 'cpm', 'ctr', 'actions', 'action_values'];
+  const fields = level === 'ad' ? ['ad_id', 'ad_name', ...baseFields] : baseFields;
   const timeRange = encodeURIComponent(JSON.stringify({ since, until }));
-  const url = `https://graph.facebook.com/v21.0/act_${accountId}/insights?fields=${fields}&time_range=${timeRange}&access_token=${token}`;
+  const levelParam = level === 'ad' ? '&level=ad&limit=500' : '';
+  const url = `https://graph.facebook.com/v21.0/act_${accountId}/insights?fields=${fields.join(',')}&time_range=${timeRange}${levelParam}&access_token=${token}`;
 
   try {
     const res  = await fetch(url);

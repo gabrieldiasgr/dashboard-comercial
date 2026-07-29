@@ -53,10 +53,13 @@
       display: flex; flex-direction: column; gap: var(--gap);
     }
 
-    /* ── DESKTOP: dash fits in one screen, no page-level scroll ── */
+    /* ── DESKTOP: Comercial fits in one screen, no page-level scroll ── */
     @media (min-width: 900px) {
       body { height: 100vh; overflow: hidden; }
+      /* Marketing tem mais conteúdo (tabela por criativo) e rola normalmente */
+      body.view-marketing { height: auto; min-height: 100vh; overflow: visible; }
     }
+    .dash-grid.marketing-mode { grid-template-rows: auto; }
 
     /* ── TOP BAR ─── */
     .top-bar {
@@ -127,6 +130,8 @@
       gap: var(--gap);
     }
     .dash-grid .kpi-row { grid-column: 1/-1; display: grid; grid-template-columns: repeat(6,1fr); gap: var(--gap); }
+    .dash-grid .kpi-row.kpi-row-3 { grid-template-columns: repeat(3,1fr); }
+    .dash-grid .kpi-row.kpi-row-5 { grid-template-columns: repeat(5,1fr); }
     .dash-grid .kpi-row.kpi-row-7 { grid-template-columns: repeat(7,1fr); }
     .dash-grid .kpi-row.kpi-row-8 { grid-template-columns: repeat(8,1fr); }
     .area-funnel  { grid-column: 1/3; grid-row: 2; min-height: 0; overflow: hidden; }
@@ -138,6 +143,7 @@
     @media (max-width: 1200px) and (min-width: 600px) {
       .dash-grid { grid-template-rows: auto auto auto auto; grid-template-columns: 1fr 1fr; }
       .dash-grid .kpi-row { grid-template-columns: repeat(3,1fr); }
+      .dash-grid .kpi-row.kpi-row-5 { grid-template-columns: repeat(3,1fr); }
       .dash-grid .kpi-row.kpi-row-7 { grid-template-columns: repeat(4,1fr); }
       .dash-grid .kpi-row.kpi-row-8 { grid-template-columns: repeat(4,1fr); }
       .area-funnel  { grid-column: 1/2; grid-row: 2; }
@@ -271,7 +277,7 @@
     .table-card { padding: 0; }
     .table-header { padding: clamp(8px, 1vw, 18px) clamp(10px, 1.2vw, 20px); border-bottom: 1px solid var(--border); flex-shrink: 0; background: rgba(0,0,0,0.2); }
     .table-header span { margin-bottom: 0; color: var(--text-hi); }
-    .tbl-scroll { overflow-y: auto; flex: 1; padding: 0 clamp(6px, 0.8vw, 16px) clamp(8px, 1vw, 16px); min-height: 0; }
+    .tbl-scroll { overflow-y: auto; overflow-x: auto; flex: 1; padding: 0 clamp(6px, 0.8vw, 16px) clamp(8px, 1vw, 16px); min-height: 0; }
     .tbl-scroll::-webkit-scrollbar { width: 6px; }
     .tbl-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
     .tbl-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -480,7 +486,11 @@
       closer   : 'dropdown_mkt2ehgd',
       sdr      : 'dropdown_mkt2jm28',
       modelo   : 'color_mm5gmp1',
+      origem   : 'color_mksy15sp',
+      criativo : 'text_mkv5psxz',
     };
+    const ORIGEM_META_ADS = 'Meta Ads';
+    const isMetaAds = item => colVal(item, COL.origem) === ORIGEM_META_ADS;
 
     const ETAPA_REALIZADA = new Set(['R1 Realizada','R2 Agendado','Follow Up','Proposta em Análise','Fechado','Perdido Closer','Contato Futuro','Desqualificado']);
     const ETAPA_AGENDADA  = new Set(['Agendadas','No-Show','R1 Realizada','R2 Agendado','Follow Up','Proposta em Análise','Fechado','Perdido Closer','Contato Futuro','Desqualificado']);
@@ -527,6 +537,8 @@
       document.getElementById('vtab-comercial').classList.toggle('active', view === 'comercial');
       document.getElementById('vtab-marketing').classList.toggle('active', view === 'marketing');
       document.getElementById('closingFilterWrap').style.display = view === 'comercial' ? 'flex' : 'none';
+      document.body.classList.toggle('view-marketing', view === 'marketing');
+      document.getElementById('dashGrid').classList.toggle('marketing-mode', view === 'marketing');
       if (view === 'comercial') loadData();
       else loadMarketingData();
     }
@@ -618,6 +630,33 @@
       return result;
     }
 
+    async function fetchMetaAdsByCreative(year, month) {
+      const cacheKey = `${year}-${pad(month)}_ad`;
+      if (metaAdsCache[cacheKey]) return metaAdsCache[cacheKey];
+
+      const [since, until] = monthRange(year, month);
+      const res = await fetch(MONDAY_URL.replace('/monday','/meta-ads'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ since, until, level: 'ad' })
+      });
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+
+      const map = new Map();
+      (json.data || []).forEach(row => {
+        const name = (row.ad_name || '').trim();
+        if (!name) return;
+        map.set(name, {
+          spend: parseFloat(row.spend) || 0,
+          impressions: parseInt(row.impressions) || 0,
+          clicks: parseInt(row.clicks) || 0,
+        });
+      });
+      metaAdsCache[cacheKey] = map;
+      return map;
+    }
+
     // ════════════════════════════════════════════════════
     //  GAUGE SVG
     // ════════════════════════════════════════════════════
@@ -648,7 +687,7 @@
     // ════════════════════════════════════════════════════
     //  API
     // ════════════════════════════════════════════════════
-    const COLS_LIST = [COL.etapa,COL.mrr,COL.dtFecha,COL.dtEntrada,COL.dtAgenda,COL.closer,COL.sdr,COL.modelo].map(c=>`"${c}"`).join(',');
+    const COLS_LIST = [COL.etapa,COL.mrr,COL.dtFecha,COL.dtEntrada,COL.dtAgenda,COL.closer,COL.sdr,COL.modelo,COL.origem,COL.criativo].map(c=>`"${c}"`).join(',');
 
     async function gql(query) {
       const res = await fetch(MONDAY_URL,{
@@ -1015,57 +1054,145 @@
     }
 
     // ════════════════════════════════════════════════════
-    //  MARKETING VIEW
+    //  MARKETING VIEW — tudo calculado só com origem "Meta Ads"
     // ════════════════════════════════════════════════════
-    function renderMarketing(ads, leadsMonday, tcvFechado, year, month) {
+    function calcMarketingKPIs(ads, leadsMeta, agendaMeta, closingsMeta) {
+      const leadsMonday     = leadsMeta.length;
+      const agendamentos    = agendaMeta.length;
+      const comparecimentos = agendaMeta.filter(i => ETAPA_REALIZADA.has(colVal(i,COL.etapa))).length;
+      const fechamentos     = closingsMeta.length;
+      const valorFechado    = closingsMeta.reduce((sum,i) => sum + (parseFloat(colVal(i,COL.mrr))||0), 0);
+      return {
+        spend: ads.spend, leadsMeta: ads.leads, leadsMonday,
+        cpl: leadsMonday ? ads.spend/leadsMonday : 0,
+        agendamentos, custoAgendamento: agendamentos ? ads.spend/agendamentos : 0,
+        comparecimentos, custoComparecimento: comparecimentos ? ads.spend/comparecimentos : 0,
+        fechamentos, cac: fechamentos ? ads.spend/fechamentos : 0,
+        valorFechado, roas: ads.spend>0 ? valorFechado/ads.spend : 0,
+      };
+    }
+
+    // Agrupa leads/agendamentos/fechamentos (origem Meta Ads) + investimento por anúncio
+    // usando o nome do criativo como chave (normalizado, pra tolerar diferença de maiúsculas)
+    function aggregateByCreative(leadsMeta, agendaMeta, closingsMeta, adMap) {
+      const rows = new Map();
+      const norm = s => (s || '').trim() || 'Sem criativo';
+      const keyOf = s => norm(s).toLowerCase();
+      const ensure = name => {
+        const k = keyOf(name);
+        if (!rows.has(k)) rows.set(k, { name: norm(name), spend:0, leads:0, agendamentos:0, comparecimentos:0, fechamentos:0, valorFechado:0 });
+        return rows.get(k);
+      };
+      leadsMeta.forEach(i => { ensure(colVal(i,COL.criativo)).leads++; });
+      agendaMeta.forEach(i => {
+        const r = ensure(colVal(i,COL.criativo));
+        r.agendamentos++;
+        if (ETAPA_REALIZADA.has(colVal(i,COL.etapa))) r.comparecimentos++;
+      });
+      closingsMeta.forEach(i => {
+        const r = ensure(colVal(i,COL.criativo));
+        r.fechamentos++;
+        r.valorFechado += parseFloat(colVal(i,COL.mrr)) || 0;
+      });
+      adMap.forEach((data, adName) => { ensure(adName).spend += data.spend; });
+
+      return [...rows.values()].map(r => ({
+        ...r,
+        cpl: r.leads ? r.spend/r.leads : 0,
+        custoAgendamento: r.agendamentos ? r.spend/r.agendamentos : 0,
+        custoComparecimento: r.comparecimentos ? r.spend/r.comparecimentos : 0,
+        cac: r.fechamentos ? r.spend/r.fechamentos : 0,
+        roas: r.spend>0 ? r.valorFechado/r.spend : 0,
+      })).sort((a,b) => b.spend - a.spend);
+    }
+
+    function renderMarketing(k, creatives, year, month) {
       const label = `${MONTHS[month-1]} ${year}`;
-      const cpl   = leadsMonday ? ads.spend / leadsMonday : 0;
-      const roas  = ads.spend > 0 ? tcvFechado / ads.spend : 0;
-      const roasColor = roas>=3?'#00c875':roas>=1?'#f59e0b':'#f87171';
+      const roasColor = k.roas>=3?'#00c875':k.roas>=1?'#f59e0b':'#f87171';
+      const noData = s => `<tr><td colspan="${s}" style="padding:12px;color:#475569;font-size:12px">Sem dados para este mês</td></tr>`;
 
       document.getElementById('dashGrid').innerHTML = `
-        <div class="kpi-row">
+        <div class="kpi-row kpi-row-5">
           <div class="card">
             <div class="card-bar bar-blue"></div>
             <div class="card-label">Investimento — ${label}</div>
-            <div class="card-value">${fmt(ads.spend)}</div>
+            <div class="card-value">${fmt(k.spend)}</div>
             <div class="card-sub">gasto em Meta Ads</div>
           </div>
           <div class="card">
             <div class="card-bar bar-blue"></div>
-            <div class="card-label">Impressões</div>
-            <div class="card-value">${ads.impressions.toLocaleString('pt-BR')}</div>
-            <div class="card-sub">CPM ${fmt(ads.cpm)}</div>
-          </div>
-          <div class="card">
-            <div class="card-bar bar-blue"></div>
-            <div class="card-label">Cliques</div>
-            <div class="card-value">${ads.clicks.toLocaleString('pt-BR')}</div>
-            <div class="card-sub">CTR ${ads.ctr.toFixed(2)}%</div>
-          </div>
-          <div class="card">
-            <div class="card-bar bar-orange"></div>
-            <div class="card-label">CPC Médio</div>
-            <div class="card-value">${fmt(ads.cpc)}</div>
-            <div class="card-sub">custo por clique</div>
+            <div class="card-label">Leads</div>
+            <div class="card-value">${Math.round(k.leadsMeta)}</div>
+            <div class="card-sub">reportados pelo Meta Ads</div>
           </div>
           <div class="card">
             <div class="card-bar bar-orange"></div>
             <div class="card-label">Leads no Monday</div>
-            <div class="card-value">${leadsMonday}</div>
-            <div class="card-sub">entraram em ${label}</div>
+            <div class="card-value">${k.leadsMonday}</div>
+            <div class="card-sub">origem Meta Ads</div>
           </div>
           <div class="card">
             <div class="card-bar bar-orange"></div>
-            <div class="card-label">CPL (Custo por Lead)</div>
-            <div class="card-value">${cpl ? fmt(cpl) : '—'}</div>
+            <div class="card-label">CPL</div>
+            <div class="card-value">${k.cpl ? fmt(k.cpl) : '—'}</div>
             <div class="card-sub">investimento / leads no Monday</div>
           </div>
           <div class="card">
             <div class="card-bar" style="background:${roasColor}"></div>
-            <div class="card-label">ROAS Real</div>
-            <div class="card-value" style="color:${roasColor}">${roas ? roas.toFixed(2)+'x' : '—'}</div>
-            <div class="card-sub">TCV fechado / investimento em ads</div>
+            <div class="card-label">ROAS</div>
+            <div class="card-value" style="color:${roasColor}">${k.roas ? k.roas.toFixed(2)+'x' : '—'}</div>
+            <div class="card-sub">fechado (MRR+TCV) / investimento</div>
+          </div>
+        </div>
+
+        <div class="kpi-row kpi-row-3">
+          <div class="card">
+            <div class="card-bar bar-blue"></div>
+            <div class="card-label">Custo / Agendamento</div>
+            <div class="card-value">${k.custoAgendamento ? fmt(k.custoAgendamento) : '—'}</div>
+            <div class="card-sub">${k.agendamentos} reuniões agendadas</div>
+          </div>
+          <div class="card">
+            <div class="card-bar bar-blue"></div>
+            <div class="card-label">Custo / Comparecimento</div>
+            <div class="card-value">${k.custoComparecimento ? fmt(k.custoComparecimento) : '—'}</div>
+            <div class="card-sub">${k.comparecimentos} reuniões realizadas</div>
+          </div>
+          <div class="card">
+            <div class="card-bar bar-orange"></div>
+            <div class="card-label">CAC</div>
+            <div class="card-value">${k.cac ? fmt(k.cac) : '—'}</div>
+            <div class="card-sub">${k.fechamentos} fechamentos</div>
+          </div>
+        </div>
+
+        <div style="grid-column:1/-1">
+          <div class="table-card">
+            <div class="table-header"><span>🎨 Por Criativo — ${label}</span></div>
+            <div class="tbl-scroll">
+              <table><thead><tr>
+                <th>Criativo</th><th class="num">Investimento</th><th class="num">Leads</th><th class="num">CPL</th>
+                <th class="num">Agend.</th><th class="num">Custo/Agend.</th>
+                <th class="num">Compar.</th><th class="num">Custo/Compar.</th>
+                <th class="num">Fechados</th><th class="num">CAC</th>
+                <th class="num">Valor Fechado</th><th class="num">ROAS</th>
+              </tr></thead><tbody>
+                ${creatives.length ? creatives.map(c => `<tr>
+                  <td class="name">${c.name}</td>
+                  <td class="num">${fmt(c.spend)}</td>
+                  <td class="num">${c.leads}</td>
+                  <td class="num">${c.cpl ? fmt(c.cpl) : '—'}</td>
+                  <td class="num">${c.agendamentos}</td>
+                  <td class="num">${c.custoAgendamento ? fmt(c.custoAgendamento) : '—'}</td>
+                  <td class="num">${c.comparecimentos}</td>
+                  <td class="num">${c.custoComparecimento ? fmt(c.custoComparecimento) : '—'}</td>
+                  <td class="num">${c.fechamentos}</td>
+                  <td class="num">${c.cac ? fmt(c.cac) : '—'}</td>
+                  <td class="num">${fmt(c.valorFechado)}</td>
+                  <td class="num">${c.roas ? c.roas.toFixed(2)+'x' : '—'}</td>
+                </tr>`).join('') : noData(12)}
+              </tbody></table>
+            </div>
           </div>
         </div>
       `;
@@ -1076,17 +1203,20 @@
       const month = parseInt(document.getElementById('monthSelect').value);
       showLoading('Carregando dados de Marketing...');
       try {
-        const [ads, leads, closings] = await Promise.all([
+        const [ads, adsByCreative, leads, agendaItems, closings] = await Promise.all([
           fetchMetaAds(year, month),
+          fetchMetaAdsByCreative(year, month),
           fetchLeads(year, month),
+          fetchAgendadas(year, month),
           fetchClosingsRaw(year, month)
         ]);
-        const leadsMonday = leads.length;
-        const tcvFechado  = closings.reduce((sum, i) => {
-          if (colVal(i, COL.modelo) === 'TCV') return sum + (parseFloat(colVal(i, COL.mrr)) || 0);
-          return sum;
-        }, 0);
-        renderMarketing(ads, leadsMonday, tcvFechado, year, month);
+        const leadsMeta    = leads.filter(isMetaAds);
+        const agendaMeta   = agendaItems.filter(isMetaAds);
+        const closingsMeta = closings.filter(isMetaAds);
+
+        const kpis      = calcMarketingKPIs(ads, leadsMeta, agendaMeta, closingsMeta);
+        const creatives = aggregateByCreative(leadsMeta, agendaMeta, closingsMeta, adsByCreative);
+        renderMarketing(kpis, creatives, year, month);
       } catch(err) {
         showError(`Erro ao buscar dados de Marketing: ${err.message}`);
       }

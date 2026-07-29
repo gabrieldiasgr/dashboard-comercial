@@ -716,8 +716,10 @@
       let all=[], cursor=null;
       const rule = `{ column_id: "${columnId}", compare_value: ["${from}", "${to}"], operator: between }`;
       do {
-        const cp = cursor ? `, cursor: "${cursor}"` : '';
-        const data = await gql(`{ boards(ids:[${BOARD_ID}]) { items_page(limit:500 ${cp}, query_params: { rules: [${rule}] }) { cursor items { id name column_values(ids:[${COLS_LIST}]) { id text } } } } }`);
+        // A API do Monday não aceita cursor e query_params na mesma requisição:
+        // o filtro só vale na 1ª página, as seguintes usam só o cursor.
+        const pageArgs = cursor ? `cursor: "${cursor}"` : `query_params: { rules: [${rule}] }`;
+        const data = await gql(`{ boards(ids:[${BOARD_ID}]) { items_page(limit:500, ${pageArgs}) { cursor items { id name column_values(ids:[${COLS_LIST}]) { id text } } } } }`);
         const page = data.boards[0].items_page;
         all = all.concat(page.items);
         cursor = page.cursor;

@@ -131,6 +131,7 @@
     }
     .dash-grid .kpi-row { grid-column: 1/-1; display: grid; grid-template-columns: repeat(6,1fr); gap: var(--gap); }
     .dash-grid .kpi-row.kpi-row-3 { grid-template-columns: repeat(3,1fr); }
+    .dash-grid .kpi-row.kpi-row-4 { grid-template-columns: repeat(4,1fr); }
     .dash-grid .kpi-row.kpi-row-5 { grid-template-columns: repeat(5,1fr); }
     .dash-grid .kpi-row.kpi-row-7 { grid-template-columns: repeat(7,1fr); }
     .dash-grid .kpi-row.kpi-row-8 { grid-template-columns: repeat(8,1fr); }
@@ -143,7 +144,6 @@
     @media (max-width: 1200px) and (min-width: 600px) {
       .dash-grid { grid-template-rows: auto auto auto auto; grid-template-columns: 1fr 1fr; }
       .dash-grid .kpi-row { grid-template-columns: repeat(3,1fr); }
-      .dash-grid .kpi-row.kpi-row-5 { grid-template-columns: repeat(3,1fr); }
       .dash-grid .kpi-row.kpi-row-7 { grid-template-columns: repeat(4,1fr); }
       .dash-grid .kpi-row.kpi-row-8 { grid-template-columns: repeat(4,1fr); }
       .area-funnel  { grid-column: 1/2; grid-row: 2; }
@@ -1114,6 +1114,12 @@
       document.getElementById('dashGrid').innerHTML = `
         <div class="kpi-row kpi-row-5">
           <div class="card">
+            <div class="card-bar bar-green"></div>
+            <div class="card-label">Faturamento</div>
+            <div class="card-value">${fmt(k.valorFechado)}</div>
+            <div class="card-sub">fechado (MRR+TCV) origem Meta Ads</div>
+          </div>
+          <div class="card">
             <div class="card-bar bar-blue"></div>
             <div class="card-label">Investimento — ${label}</div>
             <div class="card-value">${fmt(k.spend)}</div>
@@ -1126,26 +1132,26 @@
             <div class="card-sub">reportados pelo Meta Ads</div>
           </div>
           <div class="card">
-            <div class="card-bar bar-orange"></div>
+            <div class="card-bar bar-blue"></div>
             <div class="card-label">Leads no Monday</div>
             <div class="card-value">${k.leadsMonday}</div>
             <div class="card-sub">origem Meta Ads</div>
           </div>
           <div class="card">
-            <div class="card-bar bar-orange"></div>
+            <div class="card-bar bar-blue"></div>
             <div class="card-label">CPL</div>
             <div class="card-value">${k.cpl ? fmt(k.cpl) : '—'}</div>
             <div class="card-sub">investimento / leads no Monday</div>
           </div>
+        </div>
+
+        <div class="kpi-row kpi-row-4">
           <div class="card">
             <div class="card-bar" style="background:${roasColor}"></div>
             <div class="card-label">ROAS</div>
             <div class="card-value" style="color:${roasColor}">${k.roas ? k.roas.toFixed(2)+'x' : '—'}</div>
             <div class="card-sub">fechado (MRR+TCV) / investimento</div>
           </div>
-        </div>
-
-        <div class="kpi-row kpi-row-3">
           <div class="card">
             <div class="card-bar bar-blue"></div>
             <div class="card-label">Custo / Agendamento</div>
@@ -1159,7 +1165,7 @@
             <div class="card-sub">${k.comparecimentos} reuniões realizadas</div>
           </div>
           <div class="card">
-            <div class="card-bar bar-orange"></div>
+            <div class="card-bar bar-blue"></div>
             <div class="card-label">CAC</div>
             <div class="card-value">${k.cac ? fmt(k.cac) : '—'}</div>
             <div class="card-sub">${k.fechamentos} fechamentos</div>

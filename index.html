@@ -643,14 +643,16 @@
       const json = await res.json();
       if (json.error) throw new Error(json.error);
 
+      // Nunca descarta uma linha por falta de nome (ex: anúncio excluído) —
+      // isso já fez o investimento por criativo ficar menor que o total da conta.
       const map = new Map();
       (json.data || []).forEach(row => {
-        const name = (row.ad_name || '').trim();
-        if (!name) return;
+        const name = (row.ad_name || '').trim() || `Anúncio ${row.ad_id || 'sem nome'}`;
+        const prev = map.get(name) || { spend: 0, impressions: 0, clicks: 0 };
         map.set(name, {
-          spend: parseFloat(row.spend) || 0,
-          impressions: parseInt(row.impressions) || 0,
-          clicks: parseInt(row.clicks) || 0,
+          spend: prev.spend + (parseFloat(row.spend) || 0),
+          impressions: prev.impressions + (parseInt(row.impressions) || 0),
+          clicks: prev.clicks + (parseInt(row.clicks) || 0),
         });
       });
       metaAdsCache[cacheKey] = map;
